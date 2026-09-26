@@ -21,7 +21,14 @@ start_service()
     export GCB_HOST=0.0.0.0
     export GCB_PORT=19884
 
-    "$QPKG_ROOT/bin/node" "$QPKG_ROOT/app/src/server.js" >> "$LOG_DIR/service.log" 2>&1 &
+    NODE="$QPKG_ROOT/bin/node"
+    [ -x "$NODE" ] || NODE="$QPKG_ROOT/x86_64/bin/node"
+    if [ ! -x "$NODE" ]; then
+        echo "Node.js runtime not found" >> "$LOG_DIR/service.log"
+        exit 1
+    fi
+
+    "$NODE" "$QPKG_ROOT/app/src/server.js" >> "$LOG_DIR/service.log" 2>&1 &
     echo $! > "$PID_FILE"
 }
 
