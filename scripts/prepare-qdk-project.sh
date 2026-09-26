@@ -11,11 +11,12 @@ if [ -z "$NODE_BIN" ] || [ ! -x "$NODE_BIN" ]; then
 fi
 
 rm -rf "$OUT"
-mkdir -p "$OUT/shared/app/src" "$OUT/shared/app/public" "$OUT/x86_64/bin"
+mkdir -p "$OUT/shared/app/src" "$OUT/shared/app/public" "$OUT/x86_64/bin" "$OUT/icons"
 cp "$ROOT/qpkg/qpkg.cfg" "$OUT/qpkg.cfg"
 cp "$ROOT/qpkg/shared/GoogleCalendarBackup.sh" "$OUT/shared/GoogleCalendarBackup.sh"
 cp "$ROOT/src/"*.js "$OUT/shared/app/src/"
 cp "$ROOT/public/"* "$OUT/shared/app/public/"
+cp "$ROOT/qpkg/icons/"* "$OUT/icons/"
 cp "$ROOT/package.json" "$ROOT/LICENSE" "$OUT/shared/app/"
 cp "$NODE_BIN" "$OUT/x86_64/bin/node"
 chmod 755 "$OUT/shared/GoogleCalendarBackup.sh" "$OUT/x86_64/bin/node"
