@@ -13,6 +13,7 @@ fi
 rm -rf "$OUT"
 mkdir -p "$OUT/shared/app/src" "$OUT/shared/app/public" "$OUT/x86_64/bin" "$OUT/icons"
 cp "$ROOT/qpkg/qpkg.cfg" "$OUT/qpkg.cfg"
+printf "%s\n" "# Package-specific hooks intentionally empty." > "$OUT/package_routines"
 cp "$ROOT/qpkg/shared/GoogleCalendarBackup.sh" "$OUT/shared/GoogleCalendarBackup.sh"
 cp "$ROOT/src/"*.js "$OUT/shared/app/src/"
 cp "$ROOT/public/"* "$OUT/shared/app/public/"
