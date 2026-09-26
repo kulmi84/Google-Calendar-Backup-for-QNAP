@@ -1,0 +1,5 @@
+data/
+build/
+*.qpkg
+*.tmp
+node_modules/

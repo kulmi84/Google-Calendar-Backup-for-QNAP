@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Calendar Backup for QNAP</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="mark">G</div>
+      <div>
+        <h1>Google Calendar Backup</h1>
+        <p>Private Google-Kalender sicher auf dem QNAP archivieren</p>
+      </div>
+      <span class="qnap">QNAP</span>
+    </header>
+
+    <section id="notice" class="notice hidden"></section>
+
+    <section id="setup" class="card hidden narrow">
+      <h2>Ersteinrichtung</h2>
+      <p>Lege ein Passwort für diese Verwaltungsoberfläche fest.</p>
+      <form id="setupForm">
+        <label>Neues Passwort <input id="setupPassword" type="password" minlength="10" required autocomplete="new-password"></label>
+        <label>Passwort wiederholen <input id="setupPassword2" type="password" minlength="10" required autocomplete="new-password"></label>
+        <button type="submit">Einrichtung abschließen</button>
+      </form>
+    </section>
+
+    <section id="login" class="card hidden narrow">
+      <h2>Anmelden</h2>
+      <form id="loginForm">
+        <label>Passwort <input id="loginPassword" type="password" required autocomplete="current-password"></label>
+        <button type="submit">Anmelden</button>
+      </form>
+    </section>
+
+    <div id="app" class="hidden">
+      <section class="status-row">
+        <div class="card status"><span>Status</span><strong id="runState">Bereit</strong></div>
+        <div class="card status"><span>Letzte Sicherung</span><strong id="lastRun">Noch keine</strong></div>
+        <button id="runNow" class="primary">Jetzt sichern</button>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <div><h2>Kalender</h2><p>Die private iCal-Adresse wird geschützt auf dem NAS gespeichert.</p></div>
+          <button id="addCalendar" class="secondary" type="button">+ Kalender</button>
+        </div>
+        <div id="calendars"></div>
+      </section>
+
+      <section class="card">
+        <h2>Sicherung</h2>
+        <div class="grid">
+          <label>Zielordner <input id="targetDir" type="text" placeholder="/share/Sicherung/Google_Kalender"></label>
+          <label>Täglich um <input id="schedule" type="time"></label>
+          <label>Aufbewahrung in Tagen <input id="retentionDays" type="number" min="1" max="3650"></label>
+        </div>
+        <div class="actions">
+          <button id="save" class="primary" type="button">Einstellungen speichern</button>
+          <button id="logout" class="quiet" type="button">Abmelden</button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
