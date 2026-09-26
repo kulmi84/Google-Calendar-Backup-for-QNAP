@@ -1,0 +1,49 @@
+name: Build QPKG
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install QDK 2.5.3
+        run: |
+          wget -q https://github.com/qnap-dev/QDK/releases/download/v2.5.3/qdk_2.5.3_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y ./qdk_2.5.3_amd64.deb
+
+      - name: Download Node.js x86_64 runtime
+        run: |
+          curl -fsSL https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz -o /tmp/node.tar.xz
+          tar -xJf /tmp/node.tar.xz -C /tmp
+          echo "NODE_BIN=/tmp/node-v22.20.0-linux-x64/bin/node" >> "$GITHUB_ENV"
+
+      - name: Prepare QDK project
+        run: |
+          chmod +x scripts/prepare-qdk-project.sh
+          NODE_BIN="$NODE_BIN" scripts/prepare-qdk-project.sh
+
+      - name: Build with QDK
+        run: |
+          qbuild --root build/GoogleCalendarBackup --build-arch x86_64 --build-dir "$GITHUB_WORKSPACE/dist"
+          ls -lh dist
+
+      - name: Verify QPKG
+        run: |
+          qbuild --verify dist/*.qpkg || true
+          file dist/*.qpkg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GoogleCalendarBackup-qpkg
+          path: dist/*.qpkg
+          if-no-files-found: error
