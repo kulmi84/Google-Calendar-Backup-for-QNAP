@@ -1,7 +1,7 @@
 'use strict';
 
 const $ = selector => document.querySelector(selector);
-const state = { calendars: [], timer: null };
+const state = { calendars: [], timer: null, folderPath: '/share', folderParent: null };
 
 function showNotice(message, error = false) {
   const el = $('#notice');
@@ -60,6 +60,44 @@ function collectCalendars() {
     name: row.querySelector('.calendar-name').value.trim(),
     url: row.querySelector('.calendar-url').value.trim()
   }));
+}
+
+async function loadFolders(folder = '/share') {
+  const data = await request(`/api/folders?path=${encodeURIComponent(folder)}`);
+  state.folderPath = data.current;
+  state.folderParent = data.parent;
+  $('#folderCurrent').textContent = data.current;
+  $('#folderUp').disabled = !data.parent;
+  const list = $('#folderList');
+  list.innerHTML = '';
+  if (!data.folders.length) {
+    list.innerHTML = '<div class="empty">Keine Unterordner vorhanden.</div>';
+    return;
+  }
+  for (const folderItem of data.folders) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'folder-row';
+    button.innerHTML = '<span class="folder-icon">▰</span><span></span><span class="folder-arrow">›</span>';
+    button.children[1].textContent = folderItem.name;
+    button.addEventListener('click', () => loadFolders(folderItem.path).catch(error => showNotice(error.message, true)));
+    list.appendChild(button);
+  }
+}
+
+async function openFolderDialog() {
+  const current = $('#targetDir').value.trim();
+  const initial = current.startsWith('/share') ? current : '/share';
+  $('#folderDialog').classList.remove('hidden');
+  try {
+    await loadFolders(initial);
+  } catch {
+    await loadFolders('/share').catch(error => showNotice(error.message, true));
+  }
+}
+
+function closeFolderDialog() {
+  $('#folderDialog').classList.add('hidden');
 }
 
 async function loadApp() {
@@ -123,6 +161,23 @@ $('#loginForm').addEventListener('submit', async event => {
 $('#addCalendar').addEventListener('click', () => {
   state.calendars.push({ id: makeId(), name: '', hasUrl: false });
   renderCalendars();
+});
+
+$('#browseTarget').addEventListener('click', openFolderDialog);
+$('#closeFolders').addEventListener('click', closeFolderDialog);
+$('#cancelFolder').addEventListener('click', closeFolderDialog);
+$('#folderUp').addEventListener('click', () => {
+  if (state.folderParent) loadFolders(state.folderParent).catch(error => showNotice(error.message, true));
+});
+$('#chooseFolder').addEventListener('click', () => {
+  $('#targetDir').value = state.folderPath;
+  closeFolderDialog();
+});
+$('#folderDialog').addEventListener('click', event => {
+  if (event.target === $('#folderDialog')) closeFolderDialog();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !$('#folderDialog').classList.contains('hidden')) closeFolderDialog();
 });
 
 $('#save').addEventListener('click', async () => {
