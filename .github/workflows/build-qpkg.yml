@@ -37,7 +37,7 @@ jobs:
 
       - name: Build with QDK
         run: |
-          qbuild --root build/GoogleCalendarBackup --build-arch x86_64 --build-dir "$GITHUB_WORKSPACE/dist"
+          sudo qbuild --root build/GoogleCalendarBackup --build-arch x86_64 --build-dir "$GITHUB_WORKSPACE/dist"
           ls -lh dist
 
       - name: Verify QPKG
