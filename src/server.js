@@ -65,6 +65,35 @@ function publicConfig() {
   };
 }
 
+function safeSharePath(value) {
+  const raw = String(value || '/share').replace(/\\/g, '/');
+  const resolved = path.posix.resolve(raw);
+  if (resolved !== '/share' && !resolved.startsWith('/share/')) throw new Error('Ordner muss unter /share liegen');
+  return resolved;
+}
+
+function listFolders(requestedPath) {
+  const current = safeSharePath(requestedPath);
+  let entries;
+  try {
+    entries = fs.readdirSync(current, { withFileTypes: true });
+  } catch {
+    throw new Error('Ordner kann nicht gelesen werden');
+  }
+  const folders = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === '@Recycle') continue;
+    const full = path.posix.join(current, entry.name);
+    try {
+      if (entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(full).isDirectory())) {
+        folders.push({ name: entry.name, path: full });
+      }
+    } catch {}
+  }
+  folders.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+  return { current, parent: current === '/share' ? null : path.posix.dirname(current), folders };
+}
+
 function validateSettings(input) {
   const targetDir = path.resolve(String(input.targetDir || ''));
   if (!path.isAbsolute(targetDir) || targetDir.includes('\0')) throw new Error('Ungültiger Zielordner');
@@ -106,13 +135,13 @@ function serveStatic(req, res, pathname) {
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
   const file = path.resolve(PUBLIC_DIR, requested);
   if (!file.startsWith(`${PUBLIC_DIR}${path.sep}`) || !fs.existsSync(file)) return false;
-  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
   fs.createReadStream(file).pipe(res);
   return true;
 }
 
-async function api(req, res, pathname) {
+async function api(req, res, pathname, url) {
   try {
     if (pathname === '/api/setup-status' && req.method === 'GET') return json(res, 200, { setupComplete: config.setupComplete });
 
@@ -138,6 +167,7 @@ async function api(req, res, pathname) {
 
     if (pathname === '/api/config' && req.method === 'GET') return json(res, 200, publicConfig());
     if (pathname === '/api/status' && req.method === 'GET') return json(res, 200, status);
+    if (pathname === '/api/folders' && req.method === 'GET') return json(res, 200, listFolders(url.searchParams.get('path') || '/share'));
 
     if (pathname === '/api/config' && req.method === 'PUT') {
       const settings = validateSettings(await readBody(req));
@@ -174,8 +204,9 @@ async function api(req, res, pathname) {
 }
 
 const server = http.createServer((req, res) => {
-  const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
-  if (pathname.startsWith('/api/')) return void api(req, res, pathname);
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = url.pathname;
+  if (pathname.startsWith('/api/')) return void api(req, res, pathname, url);
   if (!serveStatic(req, res, pathname)) json(res, 404, { error: 'Nicht gefunden' });
 });
 
