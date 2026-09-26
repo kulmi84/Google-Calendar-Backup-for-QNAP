@@ -32,7 +32,8 @@ jobs:
       - name: Prepare QDK project
         run: |
           chmod +x scripts/prepare-qdk-project.sh
-          NODE_BIN="$NODE_BIN" scripts/prepare-qdk-project.sh\n          sudo chown -R root:root build/GoogleCalendarBackup
+          NODE_BIN="$NODE_BIN" scripts/prepare-qdk-project.sh
+          sudo chown -R root:root build/GoogleCalendarBackup
 
       - name: Build with QDK
         run: |
