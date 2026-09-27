@@ -1,7 +1,11 @@
 'use strict';
 
 const $ = selector => document.querySelector(selector);
-const state = { calendars: [], timer: null, folderPath: '/share', folderParent: null };
+const state = { calendars: [], timer: null };
+const folderState = { path: '/share', parent: null };
+const API_ROOT = location.pathname.endsWith('/')
+  ? location.pathname
+  : `${location.pathname}/`;
 
 function showNotice(message, error = false) {
   const el = $('#notice');
@@ -13,16 +17,12 @@ function showNotice(message, error = false) {
 }
 
 async function request(url, options = {}) {
-  const response = await fetch(url, {
+  const response = await fetch(`${API_ROOT}${String(url).replace(/^\//, '')}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(body.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
+  if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
   return body;
 }
 
@@ -34,24 +34,28 @@ function renderCalendars() {
   const root = $('#calendars');
   root.innerHTML = '';
   if (!state.calendars.length) {
-    root.innerHTML = '<div class="empty">Noch kein Kalender angelegt.</div>';
+    root.innerHTML = '<div class="empty">Noch kein Kalender angelegt. Klicke oben auf „Kalender hinzufügen“.</div>';
     return;
   }
-  for (const calendar of state.calendars) {
+
+  state.calendars.forEach((calendar, index) => {
     const row = document.createElement('div');
     row.className = 'calendar';
     row.dataset.id = calendar.id;
     row.innerHTML = `
-      <label>Name <input class="calendar-name" maxlength="80"></label>
-      <label>Private iCal-Adresse <input class="calendar-url" type="password" placeholder="${calendar.hasUrl ? 'Gespeichert – leer lassen zum Beibehalten' : 'https://calendar.google.com/calendar/ical/…'}"></label>
-      <button class="danger remove-calendar" type="button">Entfernen</button>`;
+      <span class="calendar-number">${String(index + 1).padStart(2, '0')}</span>
+      <label class="calendar-name-field">Name <input class="calendar-name" maxlength="80" placeholder="z. B. Familie"></label>
+      <label class="calendar-url-field">Private iCal-Adresse <input class="calendar-url" type="password" placeholder="${calendar.hasUrl ? 'Gespeichert – leer lassen zum Beibehalten' : 'https://calendar.google.com/calendar/ical/…'}"></label>
+      <button class="danger remove-calendar" type="button" title="Kalender entfernen" aria-label="Kalender entfernen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>
+      </button>`;
     row.querySelector('.calendar-name').value = calendar.name;
     row.querySelector('.remove-calendar').addEventListener('click', () => {
       state.calendars = state.calendars.filter(item => item.id !== calendar.id);
       renderCalendars();
     });
     root.appendChild(row);
-  }
+  });
 }
 
 function collectCalendars() {
@@ -62,42 +66,62 @@ function collectCalendars() {
   }));
 }
 
+function folderIcon() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v10H3V6Z"/></svg>';
+}
+
 async function loadFolders(folder = '/share') {
-  const data = await request(`/api/folders?path=${encodeURIComponent(folder)}`);
-  state.folderPath = data.current;
-  state.folderParent = data.parent;
-  $('#folderCurrent').textContent = data.current;
-  $('#folderUp').disabled = !data.parent;
-  const list = $('#folderList');
-  list.innerHTML = '';
-  if (!data.folders.length) {
-    list.innerHTML = '<div class="empty">Keine Unterordner vorhanden.</div>';
-    return;
-  }
-  for (const folderItem of data.folders) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'folder-row';
-    button.innerHTML = '<span class="folder-icon">▰</span><span></span><span class="folder-arrow">›</span>';
-    button.children[1].textContent = folderItem.name;
-    button.addEventListener('click', () => loadFolders(folderItem.path).catch(error => showNotice(error.message, true)));
-    list.appendChild(button);
-  }
-}
-
-async function openFolderDialog() {
-  const current = $('#targetDir').value.trim();
-  const initial = current.startsWith('/share') ? current : '/share';
-  $('#folderDialog').classList.remove('hidden');
+  const root = $('#folderList');
+  root.innerHTML = '<div class="folder-empty">Ordner werden geladen …</div>';
   try {
-    await loadFolders(initial);
-  } catch {
-    await loadFolders('/share').catch(error => showNotice(error.message, true));
+    // POST vermeidet QTS-Proxy-Probleme mit kodierten /share-Pfaden in der Query.
+    const result = await request('/api/folders', {
+      method: 'POST',
+      body: JSON.stringify({ path: folder })
+    });
+    folderState.path = result.path;
+    folderState.parent = result.parent;
+    $('#folderPath').textContent = result.path;
+    $('#folderUp').disabled = !result.parent;
+    $('#selectFolder').disabled = result.path === '/share';
+    root.innerHTML = '';
+
+    if (!result.folders.length) {
+      root.innerHTML = '<div class="folder-empty">Keine Unterordner vorhanden.</div>';
+      return;
+    }
+
+    for (const folderItem of result.folders) {
+      const button = document.createElement('button');
+      button.className = 'folder-row';
+      button.type = 'button';
+      button.innerHTML = `${folderIcon()}<span></span>`;
+      button.querySelector('span').textContent = folderItem.name;
+      button.addEventListener('click', () => loadFolders(folderItem.path));
+      root.appendChild(button);
+    }
+  } catch (error) {
+    root.innerHTML = '';
+    const message = document.createElement('div');
+    message.className = 'folder-empty';
+    message.textContent = error.message;
+    root.appendChild(message);
   }
 }
 
-function closeFolderDialog() {
-  $('#folderDialog').classList.add('hidden');
+async function updateStatus() {
+  try {
+    const current = await request('/api/status');
+    $('#runState').textContent = current.running ? 'Sicherung läuft …' : 'Bereit';
+    $('#runNow').disabled = current.running;
+    document.querySelector('.stat-icon.ready')?.classList.toggle('running', current.running);
+    if (current.lastRun?.finishedAt) {
+      const ok = current.lastRun.results.filter(result => result.ok).length;
+      $('#lastRun').textContent = `${new Date(current.lastRun.finishedAt).toLocaleString('de-DE')} · ${ok}/${current.lastRun.results.length} erfolgreich`;
+    }
+  } catch (error) {
+    showNotice(error.message, true);
+  }
 }
 
 async function loadApp() {
@@ -108,76 +132,18 @@ async function loadApp() {
     $('#schedule').value = cfg.schedule;
     $('#retentionDays').value = cfg.retentionDays;
     renderCalendars();
-    $('#setup').classList.add('hidden');
-    $('#login').classList.add('hidden');
-    $('#app').classList.remove('hidden');
     await updateStatus();
     clearInterval(state.timer);
     state.timer = setInterval(updateStatus, 5000);
   } catch (error) {
-    if (error.status === 401) showLogin(); else showNotice(error.message, true);
+    showNotice(error.message, true);
   }
 }
-
-function showLogin() {
-  $('#setup').classList.add('hidden');
-  $('#app').classList.add('hidden');
-  $('#login').classList.remove('hidden');
-}
-
-async function updateStatus() {
-  try {
-    const current = await request('/api/status');
-    $('#runState').textContent = current.running ? 'Sicherung läuft …' : 'Bereit';
-    $('#runNow').disabled = current.running;
-    if (current.lastRun?.finishedAt) {
-      const ok = current.lastRun.results.filter(result => result.ok).length;
-      $('#lastRun').textContent = `${new Date(current.lastRun.finishedAt).toLocaleString()} · ${ok}/${current.lastRun.results.length} erfolgreich`;
-    }
-  } catch (error) {
-    if (error.status === 401) showLogin();
-  }
-}
-
-$('#setupForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const password = $('#setupPassword').value;
-  if (password !== $('#setupPassword2').value) return showNotice('Die Passwörter stimmen nicht überein.', true);
-  try {
-    await request('/api/setup', { method: 'POST', body: JSON.stringify({ password }) });
-    await loadApp();
-  } catch (error) { showNotice(error.message, true); }
-});
-
-$('#loginForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  try {
-    await request('/api/login', { method: 'POST', body: JSON.stringify({ password: $('#loginPassword').value }) });
-    $('#loginPassword').value = '';
-    await loadApp();
-  } catch (error) { showNotice(error.message, true); }
-});
 
 $('#addCalendar').addEventListener('click', () => {
   state.calendars.push({ id: makeId(), name: '', hasUrl: false });
   renderCalendars();
-});
-
-$('#browseTarget').addEventListener('click', openFolderDialog);
-$('#closeFolders').addEventListener('click', closeFolderDialog);
-$('#cancelFolder').addEventListener('click', closeFolderDialog);
-$('#folderUp').addEventListener('click', () => {
-  if (state.folderParent) loadFolders(state.folderParent).catch(error => showNotice(error.message, true));
-});
-$('#chooseFolder').addEventListener('click', () => {
-  $('#targetDir').value = state.folderPath;
-  closeFolderDialog();
-});
-$('#folderDialog').addEventListener('click', event => {
-  if (event.target === $('#folderDialog')) closeFolderDialog();
-});
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !$('#folderDialog').classList.contains('hidden')) closeFolderDialog();
+  document.querySelector('.calendar:last-child .calendar-name')?.focus();
 });
 
 $('#save').addEventListener('click', async () => {
@@ -196,8 +162,11 @@ $('#save').addEventListener('click', async () => {
     state.calendars = cfg.calendars;
     renderCalendars();
     showNotice('Einstellungen gespeichert.');
-  } catch (error) { showNotice(error.message, true); }
-  finally { button.disabled = false; }
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
 $('#runNow').addEventListener('click', async () => {
@@ -205,17 +174,32 @@ $('#runNow').addEventListener('click', async () => {
     await request('/api/run', { method: 'POST', body: '{}' });
     showNotice('Sicherung wurde gestartet.');
     await updateStatus();
-  } catch (error) { showNotice(error.message, true); }
+  } catch (error) {
+    showNotice(error.message, true);
+  }
 });
 
-$('#logout').addEventListener('click', async () => {
-  await request('/api/logout', { method: 'POST', body: '{}' }).catch(() => {});
-  showLogin();
+$('#browseFolder').addEventListener('click', () => {
+  const current = $('#targetDir').value.trim();
+  $('#folderDialog').showModal();
+  loadFolders(current === '/share' || current.startsWith('/share/') ? current : '/share');
 });
 
-(async () => {
-  try {
-    const setup = await request('/api/setup-status');
-    if (!setup.setupComplete) $('#setup').classList.remove('hidden'); else await loadApp();
-  } catch (error) { showNotice(error.message, true); }
-})();
+$('#folderUp').addEventListener('click', () => {
+  if (folderState.parent) loadFolders(folderState.parent);
+});
+
+$('#selectFolder').addEventListener('click', () => {
+  $('#targetDir').value = folderState.path;
+  $('#folderDialog').close();
+});
+
+for (const selector of ['#closeFolderDialog', '#cancelFolder']) {
+  $(selector).addEventListener('click', () => $('#folderDialog').close());
+}
+
+$('#folderDialog').addEventListener('click', event => {
+  if (event.target === $('#folderDialog')) $('#folderDialog').close();
+});
+
+loadApp();
