@@ -102,8 +102,8 @@ jobs:
           pkg="$(find dist -maxdepth 1 -name '*.qpkg' -print -quit)"
           test -n "$pkg"
           if gh release view "v${version}" >/dev/null 2>&1; then
-            echo "Release v${version} already exists; refusing to replace an existing installer." >&2
-            exit 1
+            echo "Release v${version} already exists; keeping the published installer."
+            exit 0
           fi
           gh release create "v${version}" "$pkg" \
             --target "$GITHUB_SHA" \
