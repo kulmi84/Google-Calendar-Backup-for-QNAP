@@ -50,8 +50,9 @@ function renderCalendars() {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>
       </button>`;
     row.querySelector('.calendar-name').value = calendar.name;
+    row.querySelector('.calendar-url').value = calendar.url || '';
     row.querySelector('.remove-calendar').addEventListener('click', () => {
-      state.calendars = state.calendars.filter(item => item.id !== calendar.id);
+      state.calendars = readCalendarDrafts().filter(item => item.id !== calendar.id);
       renderCalendars();
     });
     root.appendChild(row);
@@ -64,6 +65,11 @@ function collectCalendars() {
     name: row.querySelector('.calendar-name').value.trim(),
     url: row.querySelector('.calendar-url').value.trim()
   }));
+}
+
+function readCalendarDrafts() {
+  const existing = new Map(state.calendars.map(item => [item.id, item]));
+  return collectCalendars().map(item => ({ ...existing.get(item.id), ...item }));
 }
 
 function folderIcon() {
@@ -142,6 +148,7 @@ async function loadApp() {
 }
 
 $('#addCalendar').addEventListener('click', () => {
+  state.calendars = readCalendarDrafts();
   state.calendars.push({ id: makeId(), name: '', hasUrl: false });
   renderCalendars();
   document.querySelector('.calendar:last-child .calendar-name')?.focus();

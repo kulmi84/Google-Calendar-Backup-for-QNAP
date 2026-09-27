@@ -7,7 +7,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { removeExpired, safeName, timestamp, validateCalendarUrl } = require('../src/backup');
 const { importLegacyCalendars } = require('../src/config');
-const { listFolders } = require('../src/folders');
+const { assertSharePath, listFolders } = require('../src/folders');
 
 test('safeName creates portable filenames', () => {
   assert.equal(safeName('Familie & Freunde'), 'Familie_Freunde');
@@ -80,27 +80,44 @@ test('legacy app credentials are discarded when loading configuration', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('folder browser lists only safe visible directories', () => {
+test('folder browser lists only configured QNAP shares and their safe subfolders', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gcb-folders-'));
-  fs.mkdirSync(path.join(root, 'Sicherung'));
-  fs.mkdirSync(path.join(root, 'Familie'));
+  const volume = path.join(root, 'CACHEDEV1_DATA');
+  fs.mkdirSync(volume);
+  fs.mkdirSync(path.join(volume, 'Sicherung'));
+  fs.mkdirSync(path.join(volume, 'Familie'));
+  fs.mkdirSync(path.join(volume, 'Sicherung', 'Kalender'));
+  fs.symlinkSync(path.join(volume, 'Sicherung'), path.join(root, 'Sicherung'));
+  fs.symlinkSync(path.join(volume, 'Familie'), path.join(root, 'Familie'));
   fs.mkdirSync(path.join(root, '.hidden'));
-  fs.mkdirSync(path.join(root, 'CACHEDEV1_DATA'));
+  fs.mkdirSync(path.join(root, 'HDA_DATA'));
   fs.writeFileSync(path.join(root, 'not-a-folder.txt'), 'x');
+  const config = path.join(root, 'smb.conf');
+  fs.writeFileSync(config, `[global]\npath = ${root}\n[Sicherung]\npath = ${path.join(volume, 'Sicherung')}\n[Familie]\npath = ${path.join(volume, 'Familie')}\n[Offline]\npath = ${path.join(root, 'missing')}\n[HDA_DATA]\npath = ${root}\n`);
 
-  const result = listFolders(root, root);
+  const result = listFolders(root, root, config);
   assert.equal(result.parent, null);
   assert.deepEqual(result.folders.map(item => item.name), ['Familie', 'Sicherung']);
+  assert.deepEqual(listFolders(path.join(root, 'Sicherung'), root, config).folders.map(item => item.name), ['Kalender']);
+  assert.equal(listFolders(path.join(root, 'Sicherung'), root, config).parent, root);
+  assert.equal(assertSharePath(path.join(root, 'Sicherung', 'Kalender', 'Neu'), root, config, true), path.join(root, 'Sicherung', 'Kalender', 'Neu'));
+  assert.throws(() => listFolders(path.join(root, 'HDA_DATA'), root, config), /keine konfigurierte/);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
 test('folder browser blocks traversal and symlinks outside /share root', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gcb-folders-'));
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'gcb-outside-'));
-  fs.symlinkSync(outside, path.join(root, 'escape'));
+  const share = path.join(root, 'Freigabe');
+  fs.mkdirSync(share);
+  fs.symlinkSync(outside, path.join(share, 'escape'));
+  const config = path.join(root, 'smb.conf');
+  fs.writeFileSync(config, `[Freigabe]\npath = ${share}\n`);
 
-  assert.throws(() => listFolders(outside, root), /außerhalb/);
-  assert.deepEqual(listFolders(root, root).folders, []);
+  assert.throws(() => listFolders(outside, root, config), /außerhalb/);
+  assert.deepEqual(listFolders(share, root, config).folders, []);
+  assert.throws(() => assertSharePath(path.join(share, 'escape'), root, config), /verlässt/);
+  assert.throws(() => assertSharePath(path.join(share, 'escape', 'new'), root, config, true), /verlässt/);
   fs.rmSync(root, { recursive: true, force: true });
   fs.rmSync(outside, { recursive: true, force: true });
 });

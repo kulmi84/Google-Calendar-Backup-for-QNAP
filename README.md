@@ -2,7 +2,7 @@
 
 Back up private Google Calendars automatically to a QNAP NAS. The app is designed for personal Google accounts that are not supported by enterprise Google Workspace backup products.
 
-> **Status:** Test release (`0.1.12`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
+> **Status:** Test release (`0.1.13`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
 
 ## Features
 
@@ -79,6 +79,7 @@ Snapshots can be imported through Google Calendar's **Import & export** page.
 - Prefer LAN or VPN access to the management UI.
 - The UI never returns saved private iCal URLs to the browser; a blank URL field keeps the saved value.
 - Backups contain calendar details and should be protected through QNAP shared-folder permissions.
+- The folder browser shows configured, browsable QNAP shares and their subfolders. The QPKG service does not receive the QTS user's identity, so it cannot apply that user's individual share permissions; restrict access to the app in QTS accordingly.
 
 ## License
 

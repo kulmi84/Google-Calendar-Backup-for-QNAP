@@ -6,7 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { runBackup, validateCalendarUrl } = require('./backup');
 const { loadConfig, saveConfig } = require('./config');
-const { listFolders } = require('./folders');
+const { assertSharePath, listFolders } = require('./folders');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.resolve(process.env.GCB_DATA_DIR || path.join(ROOT, 'data'));
@@ -52,7 +52,7 @@ function publicConfig() {
 function validateSettings(input) {
   const targetDir = path.resolve(String(input.targetDir || ''));
   if (!path.isAbsolute(targetDir) || targetDir.includes('\0')) throw new Error('Ungültiger Zielordner');
-  if (QNAP_MODE && !targetDir.startsWith('/share/')) throw new Error('Der Zielordner muss unter /share liegen');
+  if (QNAP_MODE) assertSharePath(targetDir, '/share', '/etc/config/smb.conf', true);
   const schedule = String(input.schedule || '');
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(schedule)) throw new Error('Ungültige Uhrzeit');
   const retentionDays = Number(input.retentionDays);
