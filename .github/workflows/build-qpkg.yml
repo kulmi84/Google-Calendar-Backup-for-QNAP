@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test application
+        run: npm test
+
       - name: Install QDK 2.5.3
         run: |
           wget -q https://github.com/qnap-dev/QDK/releases/download/v2.5.3/qdk_2.5.3_amd64.deb
@@ -42,8 +45,19 @@ jobs:
 
       - name: Verify QPKG
         run: |
-          qbuild --verify dist/*.qpkg || true
-          file dist/*.qpkg
+          set -euo pipefail
+          pkg="$(find dist -maxdepth 1 -name '*.qpkg' -print -quit)"
+          test -n "$pkg"
+          qbuild --query info "$pkg"
+          mkdir -p "$RUNNER_TEMP/qpkg-check"
+          qbuild --extract "$pkg" "$RUNNER_TEMP/qpkg-check"
+          data="$(find "$RUNNER_TEMP/qpkg-check" -name 'data.tar.gz' -print -quit)"
+          test -n "$data"
+          tar -tzf "$data" | grep -q './GoogleCalendarBackup.sh'
+          tar -tzf "$data" | grep -q './bin/node'
+          tar -tzf "$data" | grep -q './app/src/folders.js'
+          tar -tzf "$data" | grep -q './app/public/index.html'
+          file "$pkg"
 
       - uses: actions/upload-artifact@v4
         with:

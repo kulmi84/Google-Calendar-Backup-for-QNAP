@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Google Calendar Backup for QNAP</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/GoogleCalendarBackup/styles.css">
 </head>
 <body>
   <main class="shell">
@@ -37,7 +37,7 @@
       </form>
     </section>
 
-    <div id="app" class="hidden">
+    <div id="app">
       <section class="status-row">
         <div class="card status"><span>Status</span><strong id="runState">Bereit</strong></div>
         <div class="card status"><span>Letzte Sicherung</span><strong id="lastRun">Noch keine</strong></div>
@@ -66,7 +66,6 @@
         </div>
         <div class="actions">
           <button id="save" class="primary" type="button">Einstellungen speichern</button>
-          <button id="logout" class="quiet" type="button">Abmelden</button>
         </div>
       </section>
     </div>
@@ -87,6 +86,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/GoogleCalendarBackup/app.js"></script>
 </body>
 </html>

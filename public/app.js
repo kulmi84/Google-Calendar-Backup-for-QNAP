@@ -81,9 +81,9 @@ async function loadFolders(folder = '/share') {
     });
     folderState.path = result.path;
     folderState.parent = result.parent;
-    $('#folderPath').textContent = result.path;
+    $('#folderCurrent').textContent = result.path;
     $('#folderUp').disabled = !result.parent;
-    $('#selectFolder').disabled = result.path === '/share';
+    $('#chooseFolder').disabled = result.path === '/share';
     root.innerHTML = '';
 
     if (!result.folders.length) {
@@ -179,9 +179,9 @@ $('#runNow').addEventListener('click', async () => {
   }
 });
 
-$('#browseFolder').addEventListener('click', () => {
+$('#browseTarget').addEventListener('click', () => {
   const current = $('#targetDir').value.trim();
-  $('#folderDialog').showModal();
+  $('#folderDialog').classList.remove('hidden');
   loadFolders(current === '/share' || current.startsWith('/share/') ? current : '/share');
 });
 
@@ -189,17 +189,21 @@ $('#folderUp').addEventListener('click', () => {
   if (folderState.parent) loadFolders(folderState.parent);
 });
 
-$('#selectFolder').addEventListener('click', () => {
+$('#chooseFolder').addEventListener('click', () => {
   $('#targetDir').value = folderState.path;
-  $('#folderDialog').close();
+  $('#folderDialog').classList.add('hidden');
 });
 
-for (const selector of ['#closeFolderDialog', '#cancelFolder']) {
-  $(selector).addEventListener('click', () => $('#folderDialog').close());
+for (const selector of ['#closeFolders', '#cancelFolder']) {
+  $(selector).addEventListener('click', () => $('#folderDialog').classList.add('hidden'));
 }
 
 $('#folderDialog').addEventListener('click', event => {
-  if (event.target === $('#folderDialog')) $('#folderDialog').close();
+  if (event.target === $('#folderDialog')) $('#folderDialog').classList.add('hidden');
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') $('#folderDialog').classList.add('hidden');
 });
 
 loadApp();
