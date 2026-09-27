@@ -5,31 +5,119 @@ QPKG_NAME=GoogleCalendarBackup
 QPKG_ROOT="$(/sbin/getcfg "$QPKG_NAME" Install_Path -f "$CONF")"
 PID_FILE="$QPKG_ROOT/google-calendar-backup.pid"
 LOG_DIR="$QPKG_ROOT/log"
+SERVICE_LOG="$LOG_DIR/service.log"
+
+find_runtime()
+{
+    NODE_BIN=""
+    APP_ROOT=""
+
+    for CANDIDATE in \
+        "$QPKG_ROOT/bin/node" \
+        "$QPKG_ROOT/x86_64/bin/node" \
+        "$QPKG_ROOT/node/bin/node"
+    do
+        if [ -x "$CANDIDATE" ]; then
+            NODE_BIN="$CANDIDATE"
+            break
+        fi
+    done
+
+    for CANDIDATE in \
+        "$QPKG_ROOT/app" \
+        "$QPKG_ROOT/shared/app"
+    do
+        if [ -f "$CANDIDATE/src/server.js" ]; then
+            APP_ROOT="$CANDIDATE"
+            break
+        fi
+    done
+}
+
+health_check()
+{
+    "$NODE_BIN" -e "let b='';const e=process.argv[1];const h=require('http').get('http://127.0.0.1:19884/health',r=>{r.on('data',c=>b+=c);r.on('end',()=>{try{const j=JSON.parse(b);process.exit(r.statusCode===200&&j.ok===true&&j.version===e?0:1)}catch{process.exit(1)}})});h.on('error',()=>process.exit(1));h.setTimeout(1000,()=>{h.destroy();process.exit(1)})" "$EXPECTED_VERSION" >/dev/null 2>&1
+}
+
+stop_stale_processes()
+{
+    for PROC in /proc/[0-9]*; do
+        [ -r "$PROC/cmdline" ] || continue
+        CMDLINE="$(tr '\000' ' ' < "$PROC/cmdline" 2>/dev/null)"
+        case "$CMDLINE" in
+            *GoogleCalendarBackup*/src/server.js*)
+                PID="${PROC##*/}"
+                kill "$PID" 2>/dev/null
+                ;;
+        esac
+    done
+    sleep 1
+}
 
 start_service()
 {
-    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-        exit 0
-    fi
-
-    mkdir -p "$QPKG_ROOT/config" "$LOG_DIR"
-    chmod 700 "$QPKG_ROOT/config"
-
-    export QNAP_QPKG="$QPKG_NAME"
-    export GCB_DATA_DIR="$QPKG_ROOT/config"
-    export GCB_QNAP_MODE=1
-    export GCB_HOST=0.0.0.0
-    export GCB_PORT=19884
-
-    NODE="$QPKG_ROOT/bin/node"
-    [ -x "$NODE" ] || NODE="$QPKG_ROOT/x86_64/bin/node"
-    if [ ! -x "$NODE" ]; then
-        echo "Node.js runtime not found" >> "$LOG_DIR/service.log"
+    ENABLED="$(/sbin/getcfg "$QPKG_NAME" Enable -u -d FALSE -f "$CONF")"
+    if [ "$ENABLED" != "TRUE" ]; then
+        echo "$QPKG_NAME is disabled."
         exit 1
     fi
 
-    "$NODE" "$QPKG_ROOT/app/src/server.js" >> "$LOG_DIR/service.log" 2>&1 &
+    mkdir -p /etc/config/GoogleCalendarBackup "$LOG_DIR"
+    chmod 700 /etc/config/GoogleCalendarBackup
+    umask 077
+
+    find_runtime
+    if [ -z "$QPKG_ROOT" ] || [ -z "$NODE_BIN" ] || [ -z "$APP_ROOT" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Laufzeit nicht gefunden (QPKG_ROOT=$QPKG_ROOT, NODE_BIN=$NODE_BIN, APP_ROOT=$APP_ROOT)" >> "$SERVICE_LOG"
+        exit 1
+    fi
+    EXPECTED_VERSION="$("$NODE_BIN" -p "require('$APP_ROOT/package.json').version" 2>/dev/null)"
+    if [ -z "$EXPECTED_VERSION" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Paketversion konnte nicht gelesen werden" >> "$SERVICE_LOG"
+        exit 1
+    fi
+
+    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        if health_check; then
+            exit 0
+        fi
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Alter Dienst erkannt; Neustart fuer Version $EXPECTED_VERSION" >> "$SERVICE_LOG"
+        stop_service
+    fi
+    # Auch einen verwaisten Prozess ohne PID-Datei sicher ersetzen.
+    stop_stale_processes
+
+    export QNAP_QPKG="$QPKG_NAME"
+    export GCB_DATA_DIR=/etc/config/GoogleCalendarBackup
+    export GCB_QNAP_MODE=1
+    # Nur lokal lauschen: Zugriff erfolgt ausschließlich über den authentifizierten QTS-Proxy.
+    export GCB_HOST=127.0.0.1
+    export GCB_PORT=19884
+    export GCB_PROXY_PATH=/GoogleCalendarBackup
+    export PATH="$(dirname "$NODE_BIN"):$PATH"
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') Starte Google Calendar Backup $EXPECTED_VERSION ($("$NODE_BIN" --version 2>&1), Node=$NODE_BIN, App=$APP_ROOT)" >> "$SERVICE_LOG"
+    "$NODE_BIN" "$APP_ROOT/src/server.js" >> "$SERVICE_LOG" 2>&1 &
     echo $! > "$PID_FILE"
+
+    COUNT=0
+    while [ "$COUNT" -lt 10 ]; do
+        if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') Start fehlgeschlagen: Prozess wurde beendet" >> "$SERVICE_LOG"
+            rm -f "$PID_FILE"
+            exit 1
+        fi
+        if health_check; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') Dienst läuft mit PID $(cat "$PID_FILE") auf 127.0.0.1:19884" >> "$SERVICE_LOG"
+            return 0
+        fi
+        sleep 1
+        COUNT=$((COUNT + 1))
+    done
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') Start fehlgeschlagen: Health-Check auf 127.0.0.1:19884 ohne Antwort" >> "$SERVICE_LOG"
+    stop_service
+    exit 1
 }
 
 stop_service()
@@ -53,3 +141,5 @@ case "$1" in
     restart) stop_service; start_service ;;
     *) echo "Usage: $0 {start|stop|restart}"; exit 1 ;;
 esac
+
+exit 0
