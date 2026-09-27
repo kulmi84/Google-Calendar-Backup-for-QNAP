@@ -49,14 +49,30 @@ jobs:
           pkg="$(find dist -maxdepth 1 -name '*.qpkg' -print -quit)"
           test -n "$pkg"
           qbuild --query info "$pkg"
-          mkdir -p "$RUNNER_TEMP/qpkg-check"
-          qbuild --extract "$pkg" "$RUNNER_TEMP/qpkg-check"
-          data="$(find "$RUNNER_TEMP/qpkg-check" -name 'data.tar.gz' -print -quit)"
-          test -n "$data"
-          tar -tzf "$data" | grep -q './GoogleCalendarBackup.sh'
-          tar -tzf "$data" | grep -q './bin/node'
-          tar -tzf "$data" | grep -q './app/src/folders.js'
-          tar -tzf "$data" | grep -q './app/public/index.html'
+          md5sum -c "$pkg.md5"
+          python3 - "$pkg" <<'PY'
+          import io
+          import pathlib
+          import re
+          import sys
+          import tarfile
+
+          package = pathlib.Path(sys.argv[1]).read_bytes()
+          header = package[:20000].decode('utf-8', errors='replace')
+          script = int(re.search(r'^script_len=(\d+)$', header, re.M).group(1))
+          control = int(re.search(r'^offset=\$\(/usr/bin/expr \$script_len \+ (\d+)\)', header, re.M).group(1))
+          data_size = int(re.search(r'^offset=\$\(/usr/bin/expr \$offset \+ (\d+)\)', header, re.M).group(1))
+          payload = package[script + control:script + control + data_size]
+          with tarfile.open(fileobj=io.BytesIO(payload), mode='r:gz') as archive:
+              members = {member.name.removeprefix('./'): member for member in archive}
+          required = ['GoogleCalendarBackup.sh', 'bin/node', 'app/src/folders.js',
+                      'app/public/index.html', '.qpkg_icon.gif']
+          for name in required:
+              assert name in members, f'Missing QPKG payload file: {name}'
+          assert members['GoogleCalendarBackup.sh'].mode & 0o111
+          assert members['bin/node'].mode & 0o111
+          print('Verified QPKG payload:', ', '.join(required))
+          PY
           file "$pkg"
 
       - uses: actions/upload-artifact@v4
