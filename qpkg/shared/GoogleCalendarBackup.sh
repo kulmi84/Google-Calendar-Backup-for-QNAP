@@ -71,9 +71,16 @@ start_service()
         echo "$(date '+%Y-%m-%d %H:%M:%S') Laufzeit nicht gefunden (QPKG_ROOT=$QPKG_ROOT, NODE_BIN=$NODE_BIN, APP_ROOT=$APP_ROOT)" >> "$SERVICE_LOG"
         exit 1
     fi
-    EXPECTED_VERSION="$("$NODE_BIN" -p "require('$APP_ROOT/package.json').version" 2>/dev/null)"
-    if [ -z "$EXPECTED_VERSION" ]; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') Paketversion konnte nicht gelesen werden" >> "$SERVICE_LOG"
+    NODE_VERSION="$("$NODE_BIN" --version 2>&1)"
+    NODE_STATUS=$?
+    if [ "$NODE_STATUS" -ne 0 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Node-Start fehlgeschlagen (Status $NODE_STATUS, $NODE_BIN): $NODE_VERSION" >> "$SERVICE_LOG"
+        exit 1
+    fi
+    EXPECTED_VERSION="$("$NODE_BIN" -p "require('$APP_ROOT/package.json').version" 2>&1)"
+    VERSION_STATUS=$?
+    if [ "$VERSION_STATUS" -ne 0 ] || [ -z "$EXPECTED_VERSION" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Paketversion konnte nicht gelesen werden (Status $VERSION_STATUS): $EXPECTED_VERSION" >> "$SERVICE_LOG"
         exit 1
     fi
 
@@ -96,7 +103,7 @@ start_service()
     export GCB_PROXY_PATH=/GoogleCalendarBackup
     export PATH="$(dirname "$NODE_BIN"):$PATH"
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') Starte Google Calendar Backup $EXPECTED_VERSION ($("$NODE_BIN" --version 2>&1), Node=$NODE_BIN, App=$APP_ROOT)" >> "$SERVICE_LOG"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') Starte Google Calendar Backup $EXPECTED_VERSION ($NODE_VERSION, Node=$NODE_BIN, App=$APP_ROOT)" >> "$SERVICE_LOG"
     "$NODE_BIN" "$APP_ROOT/src/server.js" >> "$SERVICE_LOG" 2>&1 &
     echo $! > "$PID_FILE"
 

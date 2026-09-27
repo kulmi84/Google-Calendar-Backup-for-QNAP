@@ -2,7 +2,7 @@
 
 Back up private Google Calendars automatically to a QNAP NAS. The app is designed for personal Google accounts that are not supported by enterprise Google Workspace backup products.
 
-> **Status:** Test release (`0.1.9`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
+> **Status:** Test release (`0.1.10`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
 
 ## Features
 
@@ -44,7 +44,7 @@ NODE_BIN=/path/to/linux-x64/node ./scripts/prepare-qdk-project.sh
 
 Copy `build/GoogleCalendarBackup` to the QDK build area on the NAS and run `qbuild --build-arch x86_64`. The generated package is placed in the QDK project's `build` folder.
 
-The packaged Node.js runtime should be a `linux-x64-glibc-217` build. That target is intended for QNAP QTS 4.x/5.x systems with an older glibc. The release package includes Node.js attribution and license information.
+The packaged Node.js runtime is a checksum-verified `linux-x64-glibc-217` build for QNAP QTS 4.x/5.x systems with an older glibc. The release package includes Node.js attribution and license information.
 
 Configuration is kept in `/etc/config/GoogleCalendarBackup` so upgrades do not overwrite it. Calendar backups are never removed by uninstalling the app.
 
