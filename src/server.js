@@ -136,6 +136,7 @@ async function api(req, res, pathname, searchParams) {
       return;
     }
 
+    console.warn(`Unbekannte API-Route: ${req.method} ${pathname}`);
     return json(res, 404, { error: 'Nicht gefunden' });
   } catch (error) {
     return json(res, 400, { error: error.message });
@@ -149,12 +150,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(302, { Location: `${PROXY_PATH}/`, 'Cache-Control': 'no-store' });
     return res.end();
   }
-  if (pathname.startsWith(`${PROXY_PATH}/`)) pathname = pathname.slice(PROXY_PATH.length) || '/';
+  // QTS-Proxy-Versionen reichen den Präfix teils erneut an den Dienst weiter.
+  while (pathname.startsWith(`${PROXY_PATH}/`)) pathname = pathname.slice(PROXY_PATH.length) || '/';
   // Einige QTS-Proxy-Versionen haengen bei API-Aufrufen einen Slash an.
   if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
   if (pathname === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: APP_VERSION });
   if (pathname.startsWith('/api/')) return void api(req, res, pathname, requestUrl.searchParams);
-  if (!serveStatic(req, res, pathname)) json(res, 404, { error: 'Nicht gefunden' });
+  if (!serveStatic(req, res, pathname)) {
+    console.warn(`Unbekannte Route: ${req.method} ${pathname}`);
+    json(res, 404, { error: 'Nicht gefunden' });
+  }
 });
 
 function scheduleTick() {

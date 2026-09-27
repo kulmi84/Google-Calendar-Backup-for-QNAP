@@ -3,9 +3,9 @@
 const $ = selector => document.querySelector(selector);
 const state = { calendars: [], timer: null };
 const folderState = { path: '/share', parent: null };
-const API_ROOT = location.pathname.endsWith('/')
-  ? location.pathname
-  : `${location.pathname}/`;
+// QTS kann das Desktop-Fenster unter einem anderen Dokumentpfad öffnen.
+// API-Aufrufe gehen immer über den registrierten QPKG-Proxy-Pfad.
+const API_ROOT = '/GoogleCalendarBackup/';
 
 function showNotice(message, error = false) {
   const el = $('#notice');
@@ -101,6 +101,7 @@ async function loadFolders(folder = '/share') {
       root.appendChild(button);
     }
   } catch (error) {
+    if (folder !== '/share') return loadFolders('/share');
     root.innerHTML = '';
     const message = document.createElement('div');
     message.className = 'folder-empty';
