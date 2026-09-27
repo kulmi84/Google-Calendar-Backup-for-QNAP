@@ -1,22 +1,24 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { runBackup, validateCalendarUrl } = require('./backup');
-const { hashPassword, loadConfig, saveConfig, verifyPassword } = require('./config');
+const { loadConfig, saveConfig } = require('./config');
+const { listFolders } = require('./folders');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.resolve(process.env.GCB_DATA_DIR || path.join(ROOT, 'data'));
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const PORT = Number(process.env.GCB_PORT || 19884);
-const HOST = process.env.GCB_HOST || '0.0.0.0';
+const HOST = process.env.GCB_HOST || '127.0.0.1';
 const QNAP_MODE = process.env.GCB_QNAP_MODE === '1';
+const PROXY_PATH = String(process.env.GCB_PROXY_PATH || '/GoogleCalendarBackup').replace(/\/$/, '');
+const APP_VERSION = require('../package.json').version;
 
 let config = loadConfig(DATA_DIR);
 let status = { running: false, lastRun: null };
-let sessions = new Map();
 let lastScheduledDate = '';
 
 function json(res, code, value, headers = {}) {
@@ -38,24 +40,6 @@ function readBody(req) {
   });
 }
 
-function cookies(req) {
-  return Object.fromEntries((req.headers.cookie || '').split(';').map(part => part.trim().split('=').map(decodeURIComponent)).filter(pair => pair.length === 2));
-}
-
-function authenticated(req) {
-  const token = cookies(req).gcb_session;
-  const expiry = sessions.get(token);
-  if (!token || !expiry || expiry < Date.now()) return false;
-  sessions.set(token, Date.now() + 8 * 3600000);
-  return true;
-}
-
-function newSession(res) {
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, Date.now() + 8 * 3600000);
-  res.setHeader('Set-Cookie', `gcb_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`);
-}
-
 function publicConfig() {
   return {
     targetDir: config.targetDir,
@@ -63,35 +47,6 @@ function publicConfig() {
     retentionDays: config.retentionDays,
     calendars: config.calendars.map(({ id, name, url }) => ({ id, name, hasUrl: Boolean(url) }))
   };
-}
-
-function safeSharePath(value) {
-  const raw = String(value || '/share').replace(/\\/g, '/');
-  const resolved = path.posix.resolve(raw);
-  if (resolved !== '/share' && !resolved.startsWith('/share/')) throw new Error('Ordner muss unter /share liegen');
-  return resolved;
-}
-
-function listFolders(requestedPath) {
-  const current = safeSharePath(requestedPath);
-  let entries;
-  try {
-    entries = fs.readdirSync(current, { withFileTypes: true });
-  } catch {
-    throw new Error('Ordner kann nicht gelesen werden');
-  }
-  const folders = [];
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === '@Recycle') continue;
-    const full = path.posix.join(current, entry.name);
-    try {
-      if (entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(full).isDirectory())) {
-        folders.push({ name: entry.name, path: full });
-      }
-    } catch {}
-  }
-  folders.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-  return { current, parent: current === '/share' ? null : path.posix.dirname(current), folders };
 }
 
 function validateSettings(input) {
@@ -135,39 +90,38 @@ function serveStatic(req, res, pathname) {
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
   const file = path.resolve(PUBLIC_DIR, requested);
   if (!file.startsWith(`${PUBLIC_DIR}${path.sep}`) || !fs.existsSync(file)) return false;
-  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
+  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+
+  // QTS kann den Proxy-Pfad je nach Aufrufart verändern. Die Oberfläche wird
+  // deshalb als ein einziges HTML-Dokument ausgeliefert und benötigt keine
+  // separaten CSS-/JS-Anfragen durch den QTS-Proxy.
+  if (requested === 'index.html') {
+    const css = fs.readFileSync(path.join(PUBLIC_DIR, 'styles.css'), 'utf8');
+    const script = fs.readFileSync(path.join(PUBLIC_DIR, 'app.js'), 'utf8');
+    const html = fs.readFileSync(file, 'utf8')
+      .replace('<link rel="stylesheet" href="/GoogleCalendarBackup/styles.css">', `<style>${css}</style>`)
+      .replace('<script src="/GoogleCalendarBackup/app.js"></script>', `<script>${script}</script>`);
+    res.writeHead(200, { 'Content-Type': types['.html'], 'Cache-Control': 'no-cache' });
+    res.end(html);
+    return true;
+  }
+
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
   fs.createReadStream(file).pipe(res);
   return true;
 }
 
-async function api(req, res, pathname, url) {
+async function api(req, res, pathname, searchParams) {
   try {
-    if (pathname === '/api/setup-status' && req.method === 'GET') return json(res, 200, { setupComplete: config.setupComplete });
-
-    if (pathname === '/api/setup' && req.method === 'POST') {
-      if (config.setupComplete) return json(res, 409, { error: 'Einrichtung bereits abgeschlossen' });
-      const body = await readBody(req);
-      if (typeof body.password !== 'string' || body.password.length < 10) return json(res, 400, { error: 'Passwort muss mindestens 10 Zeichen lang sein' });
-      config.password = hashPassword(body.password);
-      config.setupComplete = true;
-      saveConfig(DATA_DIR, config);
-      newSession(res);
-      return json(res, 200, { ok: true });
-    }
-
-    if (pathname === '/api/login' && req.method === 'POST') {
-      const body = await readBody(req);
-      if (!verifyPassword(String(body.password || ''), config.password)) return json(res, 401, { error: 'Falsches Passwort' });
-      newSession(res);
-      return json(res, 200, { ok: true });
-    }
-
-    if (!authenticated(req)) return json(res, 401, { error: 'Anmeldung erforderlich' });
-
     if (pathname === '/api/config' && req.method === 'GET') return json(res, 200, publicConfig());
     if (pathname === '/api/status' && req.method === 'GET') return json(res, 200, status);
-    if (pathname === '/api/folders' && req.method === 'GET') return json(res, 200, listFolders(url.searchParams.get('path') || '/share'));
+    if (pathname === '/api/folders' && req.method === 'GET') {
+      return json(res, 200, listFolders(searchParams.get('path')));
+    }
+    if (pathname === '/api/folders' && req.method === 'POST') {
+      const input = await readBody(req);
+      return json(res, 200, listFolders(input.path));
+    }
 
     if (pathname === '/api/config' && req.method === 'PUT') {
       const settings = validateSettings(await readBody(req));
@@ -176,27 +130,12 @@ async function api(req, res, pathname, url) {
       return json(res, 200, publicConfig());
     }
 
-    if (pathname === '/api/password' && req.method === 'PUT') {
-      const body = await readBody(req);
-      if (!verifyPassword(String(body.currentPassword || ''), config.password)) return json(res, 403, { error: 'Aktuelles Passwort ist falsch' });
-      if (typeof body.newPassword !== 'string' || body.newPassword.length < 10) return json(res, 400, { error: 'Neues Passwort muss mindestens 10 Zeichen lang sein' });
-      config.password = hashPassword(body.newPassword);
-      saveConfig(DATA_DIR, config);
-      sessions = new Map();
-      return json(res, 200, { ok: true }, { 'Set-Cookie': 'gcb_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
-    }
-
     if (pathname === '/api/run' && req.method === 'POST') {
       json(res, 202, { accepted: true });
       executeBackup().catch(error => console.error(error));
       return;
     }
 
-    if (pathname === '/api/logout' && req.method === 'POST') {
-      const token = cookies(req).gcb_session;
-      sessions.delete(token);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': 'gcb_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
-    }
     return json(res, 404, { error: 'Nicht gefunden' });
   } catch (error) {
     return json(res, 400, { error: error.message });
@@ -204,14 +143,22 @@ async function api(req, res, pathname, url) {
 }
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = url.pathname;
-  if (pathname.startsWith('/api/')) return void api(req, res, pathname, url);
+  const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  let pathname = requestUrl.pathname;
+  if (pathname === PROXY_PATH) {
+    res.writeHead(302, { Location: `${PROXY_PATH}/`, 'Cache-Control': 'no-store' });
+    return res.end();
+  }
+  if (pathname.startsWith(`${PROXY_PATH}/`)) pathname = pathname.slice(PROXY_PATH.length) || '/';
+  // Einige QTS-Proxy-Versionen haengen bei API-Aufrufen einen Slash an.
+  if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
+  if (pathname === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: APP_VERSION });
+  if (pathname.startsWith('/api/')) return void api(req, res, pathname, requestUrl.searchParams);
   if (!serveStatic(req, res, pathname)) json(res, 404, { error: 'Nicht gefunden' });
 });
 
 function scheduleTick() {
-  if (!config.setupComplete || !config.calendars.length || status.running) return;
+  if (!config.calendars.length || status.running) return;
   const now = new Date();
   const day = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
   const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
