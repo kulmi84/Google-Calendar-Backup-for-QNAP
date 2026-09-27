@@ -154,6 +154,10 @@ const server = http.createServer((req, res) => {
   while (pathname.startsWith(`${PROXY_PATH}/`)) pathname = pathname.slice(PROXY_PATH.length) || '/';
   // Einige QTS-Proxy-Versionen haengen bei API-Aufrufen einen Slash an.
   if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
+  // Der QTS-Proxy auf dem TS-673A entfernt auch das Segment /api.
+  if (['/config', '/status', '/folders', '/run'].includes(pathname)) {
+    pathname = `/api${pathname}`;
+  }
   if (pathname === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: APP_VERSION });
   if (pathname.startsWith('/api/')) return void api(req, res, pathname, requestUrl.searchParams);
   if (!serveStatic(req, res, pathname)) {
