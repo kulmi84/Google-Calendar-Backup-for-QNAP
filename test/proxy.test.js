@@ -48,6 +48,31 @@ test('QTS proxy API paths reach configuration and folder handlers', async () => 
     });
     assert.equal(folders.status, 400);
     assert.match((await folders.json()).error, /außerhalb/);
+
+    const calendarUrl = 'https://calendar.google.com/calendar/ical/example/private-token/basic.ics';
+    const saveCalendar = (url, id, name, calendarUrlValue) => fetch(base + url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name, url: calendarUrlValue })
+    });
+    const first = await saveCalendar('/calendar', 'one', 'Familie', calendarUrl);
+    assert.equal(first.status, 200);
+    assert.deepEqual((await first.json()).calendars, [{ id: 'one', name: 'Familie', hasUrl: true }]);
+
+    const duplicate = await saveCalendar('/GoogleCalendarBackup/api/calendar', 'two', 'Familie', calendarUrl);
+    assert.equal(duplicate.status, 400);
+    assert.match((await duplicate.json()).error, /doppelt/);
+
+    const renamed = await saveCalendar('/calendar', 'one', 'Privat', '');
+    assert.equal(renamed.status, 200);
+    assert.deepEqual((await renamed.json()).calendars, [{ id: 'one', name: 'Privat', hasUrl: true }]);
+    const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'config.json'), 'utf8'));
+    assert.equal(saved.calendars[0].url, calendarUrl);
+    assert.equal(saved.targetDir, '/share/Sicherung/Google_Kalender');
+
+    const invalid = await saveCalendar('/calendar', 'two', 'Arbeit', 'https://example.org/calendar.ics');
+    assert.equal(invalid.status, 400);
+    assert.equal((await (await fetch(base + '/config')).json()).calendars.length, 1);
   } finally {
     child.kill();
     fs.rmSync(dataDir, { recursive: true, force: true });

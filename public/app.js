@@ -46,11 +46,13 @@ function renderCalendars() {
       <span class="calendar-number">${String(index + 1).padStart(2, '0')}</span>
       <label class="calendar-name-field">Name <input class="calendar-name" maxlength="80" placeholder="z. B. Familie"></label>
       <label class="calendar-url-field">Private iCal-Adresse <input class="calendar-url" type="password" placeholder="${calendar.hasUrl ? 'Gespeichert – leer lassen zum Beibehalten' : 'https://calendar.google.com/calendar/ical/…'}"></label>
+      <button class="secondary save-calendar" type="button" title="Diesen Kalender speichern">Speichern</button>
       <button class="danger remove-calendar" type="button" title="Kalender entfernen" aria-label="Kalender entfernen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>
       </button>`;
     row.querySelector('.calendar-name').value = calendar.name;
     row.querySelector('.calendar-url').value = calendar.url || '';
+    row.querySelector('.save-calendar').addEventListener('click', () => saveCalendar(row));
     row.querySelector('.remove-calendar').addEventListener('click', () => {
       state.calendars = readCalendarDrafts().filter(item => item.id !== calendar.id);
       renderCalendars();
@@ -70,6 +72,30 @@ function collectCalendars() {
 function readCalendarDrafts() {
   const existing = new Map(state.calendars.map(item => [item.id, item]));
   return collectCalendars().map(item => ({ ...existing.get(item.id), ...item }));
+}
+
+async function saveCalendar(row) {
+  const button = row.querySelector('.save-calendar');
+  const nameInput = row.querySelector('.calendar-name');
+  const urlInput = row.querySelector('.calendar-url');
+  button.disabled = nameInput.disabled = urlInput.disabled = true;
+  try {
+    const id = row.dataset.id;
+    const cfg = await request('/api/calendar', {
+      method: 'POST',
+      body: JSON.stringify({ id, name: nameInput.value.trim(), url: urlInput.value.trim() })
+    });
+    const saved = cfg.calendars.find(item => item.id === id);
+    state.calendars = readCalendarDrafts().map(item => item.id === id ? { ...saved, url: '' } : item);
+    nameInput.value = saved.name;
+    urlInput.value = '';
+    urlInput.placeholder = 'Gespeichert – leer lassen zum Beibehalten';
+    showNotice(`Kalender „${saved.name}“ gespeichert.`);
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = nameInput.disabled = urlInput.disabled = false;
+  }
 }
 
 function folderIcon() {

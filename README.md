@@ -2,11 +2,12 @@
 
 Back up private Google Calendars automatically to a QNAP NAS. The app is designed for personal Google accounts that are not supported by enterprise Google Workspace backup products.
 
-> **Status:** Test release (`0.1.13`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
+> **Status:** Test release (`0.1.14`) for QTS 5.x on x86_64. The web interface is available only through the authenticated QTS proxy; the internal service is bound to localhost.
 
 ## Features
 
 - Multiple private Google Calendars
+- Save each calendar independently without saving unfinished rows or unrelated settings
 - Separate, timestamped `.ics` snapshots
 - Daily schedule and configurable retention
 - Built-in browser for selecting QNAP shared folders and subfolders

@@ -123,6 +123,26 @@ async function api(req, res, pathname, searchParams) {
       return json(res, 200, listFolders(input.path));
     }
 
+    if (pathname === '/api/calendar' && req.method === 'POST') {
+      const item = await readBody(req);
+      const id = String(item.id || crypto.randomUUID());
+      const name = String(item.name || '').trim();
+      if (id.length > 128 || !name || name.length > 80) throw new Error('Kalender benötigt einen gültigen Namen und eine ID');
+      if (config.calendars.some(calendar => calendar.id !== id && calendar.name.toLowerCase() === name.toLowerCase())) {
+        throw new Error(`Kalendername doppelt: ${name}`);
+      }
+      const index = config.calendars.findIndex(calendar => calendar.id === id);
+      if (index < 0 && config.calendars.length >= 50) throw new Error('Maximal 50 Kalender sind erlaubt');
+      const url = String(item.url || (index >= 0 ? config.calendars[index].url : '')).trim();
+      validateCalendarUrl(url);
+      const calendars = [...config.calendars];
+      if (index < 0) calendars.push({ id, name, url });
+      else calendars[index] = { id, name, url };
+      config = { ...config, calendars };
+      saveConfig(DATA_DIR, config);
+      return json(res, 200, publicConfig());
+    }
+
     if (pathname === '/api/config' && req.method === 'PUT') {
       const settings = validateSettings(await readBody(req));
       config = { ...config, ...settings };
@@ -155,7 +175,7 @@ const server = http.createServer((req, res) => {
   // Einige QTS-Proxy-Versionen haengen bei API-Aufrufen einen Slash an.
   if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
   // Der QTS-Proxy auf dem TS-673A entfernt auch das Segment /api.
-  if (['/config', '/status', '/folders', '/run'].includes(pathname)) {
+  if (['/config', '/status', '/folders', '/calendar', '/run'].includes(pathname)) {
     pathname = `/api${pathname}`;
   }
   if (pathname === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: APP_VERSION });
