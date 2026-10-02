@@ -2,13 +2,13 @@
 
 Sichert private Google-Kalender automatisch als `.ics`-Dateien auf einem QNAP NAS. Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. Sie benötigt weder Google Workspace noch ein Google-Passwort oder OAuth.
 
-> **Aktueller Stand:** Testversion **0.1.14**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
+> **Aktueller Stand:** Testversion **0.1.15**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
 ![Oberfläche von Google Calendar Backup in QTS](docs/oberflaeche.png)
 
 ## Installation
 
-1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 0.1.14: [GoogleCalendarBackup_0.1.14_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v0.1.14/GoogleCalendarBackup_0.1.14_x86_64.qpkg).
+1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 0.1.15: [GoogleCalendarBackup_0.1.15_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v0.1.15/GoogleCalendarBackup_0.1.15_x86_64.qpkg).
 2. In QTS das **App Center** öffnen, die manuelle Installation wählen und die `.qpkg`-Datei auswählen.
 3. Die App über das QTS-Desktop-Symbol starten. Es ist weder eine Portfreigabe am Router noch eine zusätzliche öffentliche Weboberfläche nötig.
 

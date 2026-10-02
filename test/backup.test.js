@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const vm = require('node:vm');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { removeExpired, safeName, timestamp, validateCalendarUrl } = require('../src/backup');
@@ -137,4 +138,13 @@ test('folder browser uses a QTS-proxy-safe POST request', () => {
   assert.match(client, /request\('\/api\/folders',\s*\{\s*method: 'POST'/s);
   assert.match(server, /pathname === '\/api\/folders' && req\.method === 'POST'/);
   assert.match(server, /version: APP_VERSION/);
+});
+
+test('last backup date always uses two-digit day and month', () => {
+  const client = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  const formatter = client.match(/function formatDateTime\(value\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(formatter, 'formatDateTime function is missing');
+  const formatted = vm.runInNewContext(`${formatter}; formatDateTime(new Date(2026, 9, 2, 3, 15, 8))`);
+  assert.equal(formatted, '02.10.2026, 03:15:08');
+  assert.doesNotMatch(client, /toLocaleString\('de-DE'\)/);
 });

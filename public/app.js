@@ -30,6 +30,12 @@ function makeId() {
   return self.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 }
 
+function formatDateTime(value) {
+  const date = new Date(value);
+  const pad = number => String(number).padStart(2, '0');
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 function renderCalendars() {
   const root = $('#calendars');
   root.innerHTML = '';
@@ -150,7 +156,7 @@ async function updateStatus() {
     document.querySelector('.stat-icon.ready')?.classList.toggle('running', current.running);
     if (current.lastRun?.finishedAt) {
       const ok = current.lastRun.results.filter(result => result.ok).length;
-      $('#lastRun').textContent = `${new Date(current.lastRun.finishedAt).toLocaleString('de-DE')} · ${ok}/${current.lastRun.results.length} erfolgreich`;
+      $('#lastRun').textContent = `${formatDateTime(current.lastRun.finishedAt)} · ${ok}/${current.lastRun.results.length} erfolgreich`;
     }
   } catch (error) {
     showNotice(error.message, true);
