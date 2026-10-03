@@ -1,6 +1,6 @@
 # Release preparation
 
-## 1.0.0 Stable — prepared 2026-10-03
+## 1.0.0 Stable — publication approved 2026-10-03
 
 Base commit: `d5a59671c688148696c60be51eb88490b6237b3a` (0.1.16).
 The user explicitly confirmed that 0.1.16 was installed and works successfully on the QNAP. This is the basis for preparing 1.0.0 Stable. No application logic or bundled runtime changes are introduced.
@@ -25,3 +25,7 @@ For broader compatibility verification, record the exact NAS model, QTS version 
 The application remains MIT-licensed. Package verification requires `app/LICENSE`, `app/NODEJS-LICENSE` and `app/THIRD_PARTY_NOTICES.md`. The historical 0.1.15 installer lacks the separate Node.js license; 0.1.16 includes it.
 
 The current screenshot dates from 2026-09-27 and predates the date-formatting update. Keep its age documented; do not fabricate a NAS screenshot.
+
+## Publication approval — 2026-10-03
+
+The user explicitly approved public publication of the reviewed 1.0.0 draft. Test run 37145583618 and Build QPKG run 37145583617 succeeded for commit `30af54afaa0f93bf2411b11c5b4aa0367735307f`. Publish release ID 402645573 with its original assets. Installer SHA-256: `3ba77c2e9003d933f411e0a61327395bb76a37b82524d1bb6f4411d3008c08cf`. The dedicated publication workflow checks this identity before setting draft=false and prerelease=false. No installer replacement is authorized by this publication step.

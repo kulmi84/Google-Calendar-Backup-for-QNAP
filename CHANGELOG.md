@@ -6,14 +6,14 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 No additional changes.
 
-## 1.0.0 Stable — prepared 2026-10-03
+## 1.0.0 Stable — 2026-10-03
 
-Public publication awaits user approval.
+Public publication explicitly approved by the user.
 
 - Promote the user-confirmed, successfully tested QNAP version 0.1.16 to the first stable version.
 - Set application and QPKG metadata consistently to 1.0.0.
 - Update README, release procedure and version-specific release notes for stable status.
-- Prepare a draft stable release with QPKG and SHA-256 assets; keep 0.x releases marked as prereleases.
+- Publish the reviewed stable release with its existing QPKG and SHA-256 assets; keep 0.x releases marked as prereleases.
 - Verify version consistency before packaging and check the embedded package version.
 - Retain application behavior, bundled runtime, complete license notices and MIT application license from 0.1.16.
 

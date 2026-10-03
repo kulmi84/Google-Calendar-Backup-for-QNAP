@@ -1,0 +1,50 @@
+name: Publish approved 1.0.0 Stable
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-1.0.0.yml']
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'Publish approved 1.0.0 Stable'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify reviewed release and successful builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/402645573" > release.json
+          python3 - <<'PY'
+          import json
+          r = json.load(open('release.json'))
+          assert r['tag_name'] == 'v1.0.0'
+          assert r['target_commitish'] == '30af54afaa0f93bf2411b11c5b4aa0367735307f'
+          assert r['draft'] is True and r['prerelease'] is False
+          assets = {a['name']: a for a in r['assets']}
+          assert len(assets) == 2
+          installer = assets['GoogleCalendarBackup_1.0.0_x86_64.qpkg']
+          assert installer['id'] == 608339110
+          assert installer['digest'] == 'sha256:3ba77c2e9003d933f411e0a61327395bb76a37b82524d1bb6f4411d3008c08cf'
+          checksum = assets['GoogleCalendarBackup_1.0.0_x86_64.qpkg.sha256']
+          assert checksum['id'] == 608339108
+          assert checksum['digest'] == 'sha256:816e5408a4583b7c7e139d6481a9be84f134f9b6fa5f5aed37df0222ad338f61'
+          PY
+          for run in 37145583617 37145583618; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')" = success
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_sha')" = 30af54afaa0f93bf2411b11c5b4aa0367735307f
+          done
+      - name: Publish explicitly approved stable draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release edit v1.0.0 --draft=false --prerelease=false --latest --notes-file docs/releases/1.0.0.md
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/402645573" --jq '.draft')" = false
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/402645573" --jq '.prerelease')" = false
