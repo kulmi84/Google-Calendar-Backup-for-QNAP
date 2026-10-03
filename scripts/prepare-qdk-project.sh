@@ -10,6 +10,12 @@ if [ -z "$NODE_BIN" ] || [ ! -x "$NODE_BIN" ]; then
     exit 1
 fi
 
+NODE_LICENSE="${NODE_LICENSE:-$(dirname "$NODE_BIN")/../LICENSE}"
+if [ ! -s "$NODE_LICENSE" ]; then
+    echo "Set NODE_LICENSE to the complete LICENSE supplied with this Node.js runtime." >&2
+    exit 1
+fi
+
 rm -rf "$OUT"
 mkdir -p "$OUT/shared/app/src" "$OUT/shared/app/public" "$OUT/x86_64/bin" "$OUT/icons"
 cp "$ROOT/qpkg/qpkg.cfg" "$OUT/qpkg.cfg"
@@ -21,6 +27,8 @@ base64 -d "$ROOT/qpkg/icons/GoogleCalendarBackup.png.b64" > "$OUT/icons/GoogleCa
 base64 -d "$ROOT/qpkg/icons/GoogleCalendarBackup.png.b64" > "$OUT/icons/GoogleCalendarBackup_80.png"
 base64 -d "$ROOT/qpkg/icons/GoogleCalendarBackup.png.b64" > "$OUT/icons/GoogleCalendarBackup_gray.png"
 cp "$ROOT/package.json" "$ROOT/LICENSE" "$OUT/shared/app/"
+cp "$NODE_LICENSE" "$OUT/shared/app/NODEJS-LICENSE"
+cp "$ROOT/THIRD_PARTY_NOTICES.md" "$OUT/shared/app/"
 cp "$NODE_BIN" "$OUT/x86_64/bin/node"
 chmod 755 "$OUT/shared/GoogleCalendarBackup.sh" "$OUT/x86_64/bin/node"
 

@@ -2,15 +2,37 @@
 
 Sichert private Google-Kalender automatisch als `.ics`-Dateien auf einem QNAP NAS. Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. Sie benötigt weder Google Workspace noch ein Google-Passwort oder OAuth.
 
-> **Aktueller Stand:** Testversion **0.1.15**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
+> **Aktueller Entwicklungsstand:** Release-Kandidat **0.1.16**, noch ohne öffentliche Freigabe. Die zuletzt veröffentlichte Vorabversion ist **0.1.15**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
 ![Oberfläche von Google Calendar Backup in QTS](docs/oberflaeche.png)
+
+Der Screenshot zeigt die Oberfläche vom 27. September 2026 vor der Datumsformatierung aus 0.1.15; gespeicherte Kalenderadressen sind ausgeblendet.
+
+## Features
+
+- Mehrere Google-Kalender mit unabhängigem Speichern jeder Kalenderzeile.
+- Zeitgestempelte ICS-Dateien, täglicher Zeitplan und einstellbare Aufbewahrung.
+- Manuelle Sicherung mit Status und Ergebnis des letzten Laufs.
+- Auswahl vorhandener QNAP-Freigaben und Unterordner.
+- Prüfung auf iCalendar-Inhalt und Übernahme erst nach abgeschlossenem Download.
+- Sicherungsverlauf in `backup.log` und Meldungen an QNAP QuLog Center.
+- Bedienung über den QTS-Zugang; kein separates App-Passwort.
+
+## Voraussetzungen und Grenzen
+
+- QTS **ab 5.1.0**, QNAP mit **x86_64**-Prozessor. ARM und QuTS hero sind nicht als unterstützt verifiziert.
+- Ein Google-Kalender mit geheimer iCal-Adresse, Internetzugang des NAS und eine geeignete QNAP-Freigabe.
+- Der Zeitplan verwendet die lokale Uhrzeit des NAS. Die App muss zur geplanten Uhrzeit laufen; verpasste Läufe werden nicht nachgeholt.
+- ICS-Snapshots sichern die von Google bereitgestellten Kalenderdaten. Kontoeinstellungen und Freigaberechte werden nicht gesichert; eine automatische Wiederherstellung bietet die App nicht.
 
 ## Installation
 
 1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 0.1.15: [GoogleCalendarBackup_0.1.15_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v0.1.15/GoogleCalendarBackup_0.1.15_x86_64.qpkg).
-2. In QTS das **App Center** öffnen, die manuelle Installation wählen und die `.qpkg`-Datei auswählen.
-3. Die App über das QTS-Desktop-Symbol starten. Es ist weder eine Portfreigabe am Router noch eine zusätzliche öffentliche Weboberfläche nötig.
+2. In QTS mit einem Konto mit Berechtigung zur App-Installation anmelden.
+3. **App Center → Manuell installieren** öffnen, die heruntergeladene `.qpkg`-Datei auswählen und die Installation bestätigen. Die automatisch von GitHub angebotenen Quellcode-ZIP-/TAR-Dateien sind keine QNAP-Installer.
+4. Falls QTS die Installation wegen einer fehlenden digitalen Signatur blockiert: die App-Center-Einstellung zur Installation von Anwendungen ohne gültige digitale Signatur prüfen und nur für das bewusst heruntergeladene Paket erlauben. Die genaue Bezeichnung hängt von der QTS-Version ab. Der aktuelle Build enthält keinen Signierungsschritt.
+5. Die App über das QTS-Desktop-Symbol starten. Es ist weder eine Portfreigabe am Router noch eine zusätzliche öffentliche Weboberfläche nötig.
+6. Kalender und Zielordner einrichten, **Jetzt sichern** wählen und Ergebnis sowie die erzeugten ICS-Dateien im Zielordner prüfen.
 
 Bei einem Upgrade bleibt die Konfiguration unter `/etc/config/GoogleCalendarBackup` erhalten. Vorhandene Sicherungen werden durch die Deinstallation nicht gelöscht. Falls noch ein früherer Cronjob für `google_calendar_backup.sh` aktiv ist, ihn **nach einer erfolgreichen Sicherung mit dem QPKG** entfernen, damit nicht zwei Jobs parallel sichern.
 
@@ -68,14 +90,20 @@ npm start
 
 Lokal lauscht die App auf `127.0.0.1:19884`; im Entwicklungsmodus sind Zielordner außerhalb von `/share` möglich. Im QPKG-Modus ist eine konfigurierte QNAP-Freigabe unter `/share` erforderlich.
 
-Der vorhandene [GitHub-Actions-Workflow](.github/workflows/build-qpkg.yml) testet die Anwendung, lädt den prüfsummenverifizierten Node.js-22-x86_64-Build für `glibc-217`, bereitet das QDK-Projekt vor, baut das QPKG mit QDK 2.5.3 und prüft das Paket. Bei einer neuen Versionsnummer wird die installierbare Datei im GitHub Release veröffentlicht. Die manuelle Vorbereitung ist ebenfalls möglich:
+Der vorhandene [GitHub-Actions-Workflow](.github/workflows/build-qpkg.yml) testet die Anwendung, lädt den prüfsummenverifizierten Node.js-22-x86_64-Build für `glibc-217`, bereitet das QDK-Projekt vor, baut das QPKG mit QDK 2.5.3 und prüft das Paket. Bei einer neuen Versionsnummer auf `main` werden QPKG, SHA-256-Datei und versionsbezogene Hinweise als **Release-Entwurf** vorbereitet; die öffentliche Freigabe erfolgt anschließend bewusst. Die manuelle Vorbereitung ist ebenfalls möglich:
 
 ```sh
 NODE_BIN=/pfad/zu/linux-x64/bin/node ./scripts/prepare-qdk-project.sh
 ```
 
-Der gewählte Node-Build muss zur glibc-Version des QNAP passen. Das QPKG enthält Node.js-Lizenz- und Attributionshinweise.
+Der gewählte Node-Build muss zur glibc-Version des QNAP passen. Die Paketvorbereitung benötigt auch den vollständigen Lizenztext dieses Node-Builds; er wird als `app/NODEJS-LICENSE` beigelegt. Beim vorhandenen QPKG 0.1.15 fehlt diese Beigabe noch; der nächste Paketbuild muss dies korrigieren. Details: [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md).
+
+## Veröffentlichungsstand
+
+Die veröffentlichten Releases sind Vorabversionen; 0.1.15 ist der zuletzt veröffentlichte Stand. 0.1.16 wird als Release-Kandidat mit vollständigen Lizenzbeigaben und Prüfsumme vorbereitet. [Release-Hinweise für 0.1.16](docs/releases/0.1.16.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center.
+
+Fehler können über [GitHub Issues](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/issues) gemeldet werden. Bitte Paketversion, NAS-Modell, QTS-Version und bereinigte Fehlermeldung angeben. Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden.
 
 ## Lizenz
 
-MIT
+Die Anwendung steht unter der [MIT-Lizenz](LICENSE), Copyright © 2026 Marcin Kulamczewski. Beigepackte Drittanbieterkomponenten behalten ihre eigenen Lizenzbedingungen. Dies ist ein unabhängiges Community-Projekt und keine offizielle Anwendung von QNAP oder Google.
