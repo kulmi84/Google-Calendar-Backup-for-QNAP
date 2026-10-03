@@ -1,6 +1,7 @@
 name: Build QPKG
 
 on:
+  pull_request:
   workflow_dispatch:
   push:
     branches:
@@ -77,22 +78,27 @@ jobs:
           with tarfile.open(fileobj=io.BytesIO(payload), mode='r:gz') as archive:
               members = {member.name.removeprefix('./'): member for member in archive}
           required = ['GoogleCalendarBackup.sh', 'bin/node', 'app/src/folders.js',
-                      'app/public/index.html', '.qpkg_icon.gif']
+                      'app/public/index.html', '.qpkg_icon.gif', 'app/LICENSE',
+                      'app/NODEJS-LICENSE', 'app/THIRD_PARTY_NOTICES.md']
           for name in required:
               assert name in members, f'Missing QPKG payload file: {name}'
           assert members['GoogleCalendarBackup.sh'].mode & 0o111
           assert members['bin/node'].mode & 0o111
+          assert members['app/NODEJS-LICENSE'].size > 0
           print('Verified QPKG payload:', ', '.join(required))
           PY
           file "$pkg"
+          (cd dist && sha256sum "$(basename "$pkg")" > "$(basename "$pkg").sha256")
 
       - uses: actions/upload-artifact@v4
         with:
           name: GoogleCalendarBackup-qpkg
-          path: dist/*.qpkg
+          path: |
+            dist/*.qpkg
+            dist/*.sha256
           if-no-files-found: error
 
-      - name: Publish installable QPKG as GitHub release
+      - name: Prepare draft GitHub release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -105,8 +111,12 @@ jobs:
             echo "Release v${version} already exists; keeping the published installer."
             exit 0
           fi
-          gh release create "v${version}" "$pkg" \
+          test "$(sed -n 's/^QPKG_VER="\(.*\)"/\1/p' qpkg/qpkg.cfg)" = "$version"
+          notes="docs/releases/${version}.md"
+          test -s "$notes"
+          gh release create "v${version}" "$pkg" "$pkg.sha256" \
             --target "$GITHUB_SHA" \
             --title "Google Calendar Backup v${version}" \
-            --notes "Installable x86_64 QPKG for QNAP QTS. Built and verified with QDK." \
+            --notes-file "$notes" \
+            --draft \
             --prerelease

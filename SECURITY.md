@@ -1,7 +1,12 @@
 # Security
 
-Please do not publish private iCal URLs, configuration files, screenshots containing URLs, or QPKG data directories.
+Do not publish private iCal URLs, configuration files or screenshots containing URLs. Calendar backups and logs can contain personal data.
 
-Report vulnerabilities privately through GitHub's security advisory feature. Do not open a public issue for a vulnerability.
+The QPKG service binds to `127.0.0.1:19884`. The management interface is routed through the QTS proxy and uses the existing QTS login; there is no separate application password. Use HTTPS for QTS access. Do not expose the internal service port.
 
-The application stores private iCal URLs in `config/config.json` with mode `0600`. The management password is stored as a salted scrypt hash. The web interface currently uses HTTP on the NAS LAN; do not expose port `19884` directly to the internet.
+Private iCal URLs are stored in `/etc/config/GoogleCalendarBackup/config.json` with file mode `0600` and are not returned to the browser. Backup files and `backup.log` use mode `0644`; protect their shared folder through QNAP permissions.
+
+The service does not receive the signed-in QTS user's identity and cannot filter folders by that user's individual share permissions. Restrict app access in QTS to trusted users.
+
+Report vulnerabilities privately using [GitHub private vulnerability reporting](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/security/advisories/new) if enabled. If that option is unavailable, contact the maintainer through a private contact channel before sharing details; do not post vulnerability details or secrets in a public issue. No response-time guarantee is provided.
+
