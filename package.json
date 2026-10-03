@@ -1,6 +1,6 @@
 {
   "name": "google-calendar-backup-for-qnap",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "private": true,
   "description": "Back up private Google Calendars to a QNAP NAS.",
   "license": "MIT",

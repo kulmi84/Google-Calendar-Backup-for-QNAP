@@ -2,7 +2,7 @@
 
 Sichert private Google-Kalender automatisch als `.ics`-Dateien auf einem QNAP NAS. Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. Sie benötigt weder Google Workspace noch ein Google-Passwort oder OAuth.
 
-> **Aktueller Stand:** Testversion **0.1.15**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
+> **Aktueller Entwicklungsstand:** Release-Kandidat **0.1.16**, noch ohne öffentliche Freigabe. Die zuletzt veröffentlichte Vorabversion ist **0.1.15**. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
 ![Oberfläche von Google Calendar Backup in QTS](docs/oberflaeche.png)
 
@@ -100,7 +100,7 @@ Der gewählte Node-Build muss zur glibc-Version des QNAP passen. Die Paketvorber
 
 ## Veröffentlichungsstand
 
-Die vorhandenen Releases sind Vorabversionen; 0.1.15 ist der aktuelle Stand. Funktionsänderungen stehen im [Changelog](CHANGELOG.md). Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center.
+Die veröffentlichten Releases sind Vorabversionen; 0.1.15 ist der zuletzt veröffentlichte Stand. 0.1.16 wird als Release-Kandidat mit vollständigen Lizenzbeigaben und Prüfsumme vorbereitet. [Release-Hinweise für 0.1.16](docs/releases/0.1.16.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center.
 
 Fehler können über [GitHub Issues](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/issues) gemeldet werden. Bitte Paketversion, NAS-Modell, QTS-Version und bereinigte Fehlermeldung angeben. Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden.
 

@@ -4,6 +4,12 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 ## Unreleased
 
+No additional changes.
+
+## 0.1.16 — release candidate prepared 2026-10-03
+
+Not publicly released. Application backup behavior is unchanged from 0.1.15.
+
 - Added explicit features, QTS 5.1.0 minimum, manual installation steps and backup limitations.
 - Corrected security documentation to match QTS login and the current configuration path.
 - Documented screenshot age and third-party licensing.
