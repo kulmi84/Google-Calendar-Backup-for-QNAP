@@ -1,6 +1,10 @@
 # Google Calendar Backup for QNAP
 
-Sichert private Google-Kalender automatisch als `.ics`-Dateien auf einem QNAP NAS. Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. Sie benötigt weder Google Workspace noch ein Google-Passwort oder OAuth.
+**Google Kalender Backup für QNAP / Google Calendar Backup for QNAP** – sichert private Google-Kalender automatisch als `.ics`-Dateien auf einem QNAP NAS. Geeignet für alle, die ein **Google Kalender Backup auf einem QNAP NAS** bzw. ein **Google Calendar Backup auf QNAP** suchen.
+
+Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. Sie benötigt weder Google Workspace noch ein Google-Passwort oder OAuth.
+
+**Suchbegriffe / Keywords:** Google Kalender Backup, Google Kalender sichern, Google Calendar Backup, Google Calendar sichern, Kalender Backup QNAP, Calendar Backup QNAP, QNAP Google Kalender, QNAP Google Calendar, ICS Backup, QTS Backup.
 
 > **Aktuelle Version: 1.0.0 Stable**, auf Basis der erfolgreich auf dem QNAP getesteten 0.1.16. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
