@@ -6,6 +6,12 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 No additional changes.
 
+## 1.0.1 — 2026-10-04
+
+- Add an independent hourly QTS cron watchdog with per-calendar 26-hour ICS freshness checks, daily warning deduplication and recovery messages in QuLog.
+- Preserve existing cron tasks and remove only the marked watchdog task on QPKG uninstall.
+- Preserve loopback-only service binding, UI and icon; add automated watchdog coverage and QPKG payload verification.
+
 ## 1.0.0 Stable — 2026-10-03
 
 Public publication explicitly approved by the user.
@@ -49,4 +55,3 @@ According to the original release notes:
 - Accept trailing slashes in API routes.
 
 Earlier preview releases: 0.1.1, 0.1.2, 0.1.3, 0.1.5 and 0.1.7. See [GitHub releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) for their original notes and assets. Missing release numbers do not imply an available installer.
-

@@ -1,5 +1,9 @@
 # Release preparation
 
+## 1.0.1 Watchdog — requested 2026-10-04
+
+The user requested implementing the watchdog idea as 1.0.1 under the existing commit/push/build/release instruction. The build workflow publishes this specific version only after successful application tests, QDK packaging and payload verification. Other future versions continue to use the draft procedure. Existing release assets are never replaced. The independent hourly cron/QuLog integration is not yet verified on the user's NAS; release notes must retain that limitation. No network binding, UI or icon changes are authorized.
+
 ## 1.0.0 Stable — publication approved 2026-10-03
 
 Base commit: `d5a59671c688148696c60be51eb88490b6237b3a` (0.1.16).

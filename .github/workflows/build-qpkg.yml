@@ -92,7 +92,7 @@ jobs:
               expected = json.loads(pathlib.Path('package.json').read_text())['version']
               assert metadata['version'] == expected, 'Embedded application version mismatch'
               assert pathlib.Path(sys.argv[1]).name == f'GoogleCalendarBackup_{expected}_x86_64.qpkg'
-          required = ['GoogleCalendarBackup.sh', 'bin/node', 'app/src/folders.js',
+          required = ['GoogleCalendarBackup.sh', 'bin/node', 'app/src/folders.js', 'app/src/watchdog.js',
                       'app/public/index.html', '.qpkg_icon.gif', 'app/LICENSE',
                       'app/NODEJS-LICENSE', 'app/THIRD_PARTY_NOTICES.md']
           for name in required:
@@ -130,6 +130,11 @@ jobs:
           notes="docs/releases/${version}.md"
           test -s "$notes"
           release_flags=(--draft)
+          # The user requested implementation and release of the watchdog in 1.0.1.
+          # Publish only this approved version after all build/payload checks pass.
+          if [[ "$version" == 1.0.1 ]]; then
+            release_flags=()
+          fi
           if [[ "$version" == 0.* || "$version" == *-* ]]; then
             release_flags+=(--prerelease)
           fi

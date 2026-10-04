@@ -7,6 +7,35 @@ PID_FILE="$QPKG_ROOT/google-calendar-backup.pid"
 LOG_DIR="$QPKG_ROOT/log"
 SERVICE_LOG="$LOG_DIR/service.log"
 
+watchdog_cron()
+{
+    # Edit only our tagged job; leave all other NAS schedules unchanged.
+    CRON_FILE=/etc/config/crontab
+    CRON_JOB='15 * * * * /etc/init.d/GoogleCalendarBackup.sh watchdog # GoogleCalendarBackup-Watchdog'
+    [ -r "$CRON_FILE" ] || return 1
+    if [ "$1" = register ] && grep -Fqx "$CRON_JOB" "$CRON_FILE"; then
+        return 0
+    fi
+    CRON_TEMP="$(mktemp /etc/config/gcb-watchdog-cron.XXXXXX)" || return 1
+    awk '!/ # GoogleCalendarBackup-Watchdog$/' "$CRON_FILE" > "$CRON_TEMP" || { rm -f "$CRON_TEMP"; return 1; }
+    if [ "$1" = register ]; then
+        printf '%s\n' "$CRON_JOB" >> "$CRON_TEMP"
+    fi
+    chmod 644 "$CRON_TEMP"
+    mv "$CRON_TEMP" "$CRON_FILE" || { rm -f "$CRON_TEMP"; return 1; }
+    crontab "$CRON_FILE"
+}
+
+run_watchdog()
+{
+    find_runtime
+    if [ -z "$NODE_BIN" ] || [ -z "$APP_ROOT" ]; then
+        /sbin/log_tool -t2 -uSystem -p127.0.0.1 -mlocalhost -a '[Google Calendar Backup] Watchdog: App-Laufzeit fehlt; Sicherungen können nicht geprüft werden.'
+        return 1
+    fi
+    GCB_DATA_DIR=/etc/config/GoogleCalendarBackup "$NODE_BIN" "$APP_ROOT/src/watchdog.js"
+}
+
 find_runtime()
 {
     NODE_BIN=""
@@ -63,6 +92,8 @@ start_service()
     fi
 
     mkdir -p /etc/config/GoogleCalendarBackup "$LOG_DIR"
+    watchdog_cron register || { echo 'Watchdog-Cronjob konnte nicht eingerichtet werden.' >> "$SERVICE_LOG"; return 1; }
+    run_watchdog >> "$SERVICE_LOG" 2>&1
     chmod 700 /etc/config/GoogleCalendarBackup
     umask 077
 
@@ -146,7 +177,9 @@ case "$1" in
     start) start_service ;;
     stop) stop_service ;;
     restart) stop_service; start_service ;;
-    *) echo "Usage: $0 {start|stop|restart}"; exit 1 ;;
+    watchdog) run_watchdog; exit $? ;;
+    remove) watchdog_cron remove; exit $? ;;
+    *) echo "Usage: $0 {start|stop|restart|watchdog|remove}"; exit 1 ;;
 esac
 
 exit 0

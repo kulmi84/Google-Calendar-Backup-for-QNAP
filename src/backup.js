@@ -124,4 +124,4 @@ async function runBackup(config) {
   return { startedAt: new Date().toISOString(), results };
 }
 
-module.exports = { backupCalendar, removeExpired, runBackup, safeName, timestamp, validateCalendarUrl };
+module.exports = { backupCalendar, removeExpired, runBackup, safeName, timestamp, validateCalendarUrl, qulog };
