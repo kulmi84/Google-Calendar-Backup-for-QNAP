@@ -11,7 +11,7 @@ So prüfst du deine Benachrichtigungsregel ohne einen echten Sicherungsfehler: B
 - Downloads werden auf eine vollständige iCalendar-Hülle, `VERSION:2.0` und geschlossene Komponenten geprüft. Leere Kalender ohne Termine sind erlaubt; leere Dateien, HTML und abgebrochene ICS-Dateien nicht. Erst nach erfolgreicher Prüfung und Synchronisierung wird die temporäre Datei atomisch zur endgültigen `.ics` umbenannt.
 - Jeder konfigurierte Kalender wird einzeln überwacht. In seiner Zeile stehen Zeitpunkt und Alter der letzten gültigen Sicherung sowie der Zustand. Ein fehlerhafter Kalender stoppt die übrigen Sicherungen nicht; unvollständige Läufe bleiben erkennbar.
 - Die Oberfläche zeigt Zielordnerzustand und verfügbaren Speicherplatz. Vor jedem Download sind eine erfolgreiche Schreibprobe und mindestens **60 MiB** freier Platz nötig (50 MiB maximaler Kalenderdownload plus 10 MiB Reserve).
-- Die aufklappbare **Fehlerhistorie** zeigt die letzten 100 Sicherungs-, Wartungs- und Watchdog-Fehler. Sie bleibt nach Neustarts erhalten und liegt mit privaten Dateirechten unter `/etc/config/GoogleCalendarBackup/error-history/`, unabhängig vom Sicherungsordner. Geheime URLs werden ausgeblendet; alte Textlogs werden nicht importiert.
+- Die aufklappbare **Fehlerhistorie** zeigt und speichert die letzten **100 Fehler und Warnungen** aus Sicherung, Wartung und Watchdog, einschließlich gekennzeichneter Testwarnungen. Sie bleibt nach einem **App-Neustart** erhalten und liegt mit privaten Dateirechten unter `/etc/config/GoogleCalendarBackup/error-history/`, unabhängig vom Sicherungsordner. Geheime URLs werden ausgeblendet; alte Textlogs werden nicht importiert.
 - Der unabhängige Watchdog nutzt jetzt dieselbe vollständige Inhaltsprüfung und prüft zusätzlich Zielordner und freien Speicherplatz. Die neuen Funktionen sind automatisch aktiv; es gibt keinen zusätzlichen Aktivierungsschalter.
 
 Die Anzeige wird regelmäßig aktualisiert; die Dateiprüfung erfolgt höchstens einmal pro Minute und zusätzlich nach Konfigurationsänderungen und Sicherungen. Das helle UI, Icon, tägliche Uhrzeit und Netzwerkbindung bleiben erhalten. Verpasste Sicherungen werden nicht nachgeholt. Details: [Release-Hinweise 1.0.2](docs/releases/1.0.2.md).
@@ -77,6 +77,14 @@ Bei einem Upgrade bleibt die Konfiguration unter `/etc/config/GoogleCalendarBack
 Der Papierkorb entfernt eine Kalenderzeile zunächst aus der Oberfläche. **Erst „Einstellungen speichern“ übernimmt die Löschung dauerhaft.** Diese Schaltfläche speichert die gesamte Kalenderliste und die Sicherungseinstellungen; unvollständige Kalenderzeilen können dabei zu einer Validierungsfehlermeldung führen. Kalendernamen müssen auch nach Umwandlung in Dateinamen eindeutig sein (beispielsweise kollidieren `Privat!` und `Privat?`).
 
 Behandle die geheime iCal-Adresse wie ein Passwort: Wer sie besitzt, kann den Kalender lesen.
+
+![Bereich Sicherung mit Testwarnung senden und aufgeklappter Fehlerhistorie (1)](docs/sicherung-testwarnung-fehlerhistorie.png)
+
+Der aktuelle Screenshot vom 4. Oktober 2026 zeigt **Sicherung** mit **Testwarnung senden** und die aufgeklappte **Fehlerhistorie (1)** mit einer gekennzeichneten Testwarnung.
+
+Mit **Testwarnung senden** löst du einen gekennzeichneten **Benachrichtigungstest** aus, keinen tatsächlichen Sicherungsfehler. Prüfe den Eintrag `Watchdog: TESTWARNUNG` in **QuLog** und die Zustellung per **E-Mail/Push** über deine **QNAP-Benachrichtigungsregel** im Notification Center. Die Regel muss Warnungen dieser App berücksichtigen; eine erfolgreiche Übergabe an QuLog bestätigt noch keine E-Mail-/Push-Zustellung.
+
+Die aufklappbare **Fehlerhistorie** zeigt und speichert die letzten **100 Fehler und Warnungen**, einschließlich Testwarnungen. Diese Einträge bleiben auch nach einem **App-Neustart** erhalten.
 
 ## Sicherungsdateien
 
