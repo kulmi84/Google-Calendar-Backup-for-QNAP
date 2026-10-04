@@ -1,7 +1,7 @@
 'use strict';
 
 const $ = selector => document.querySelector(selector);
-const state = { calendars: [], timer: null };
+const state = { calendars: [], timer: null, health: null };
 const folderState = { path: '/share', parent: null };
 // QTS kann das Desktop-Fenster unter einem anderen Dokumentpfad öffnen.
 // API-Aufrufe gehen immer über den registrierten QPKG-Proxy-Pfad.
@@ -55,7 +55,7 @@ function renderCalendars() {
       <button class="secondary save-calendar" type="button" title="Diesen Kalender speichern">Speichern</button>
       <button class="danger remove-calendar" type="button" title="Kalender entfernen" aria-label="Kalender entfernen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>
-      </button>`;
+      </button><p class="calendar-health health-detail">Noch nicht gespeichert</p>`;
     row.querySelector('.calendar-name').value = calendar.name;
     row.querySelector('.calendar-url').value = calendar.url || '';
     row.querySelector('.save-calendar').addEventListener('click', () => saveCalendar(row));
@@ -65,6 +65,38 @@ function renderCalendars() {
     });
     root.appendChild(row);
   });
+  renderHealth();
+}
+
+function renderHealth() {
+  const byId = new Map((state.health?.calendars || []).map(calendar => [calendar.id, calendar]));
+  for (const row of document.querySelectorAll('.calendar')) {
+    const item = byId.get(row.dataset.id);
+    const label = row.querySelector('.calendar-health');
+    label.classList.toggle('warning', Boolean(item && item.state !== 'fresh'));
+    if (!item) { label.textContent = 'Noch nicht gespeichert'; continue; }
+    if (!item.lastBackupAt) {
+      label.textContent = item.error || 'Noch keine gültige Sicherung gefunden';
+    } else {
+      const age = Math.max(0, (Date.now() - Date.parse(item.lastBackupAt)) / 3600000);
+      const ageText = age < 1 ? `${Math.floor(age * 60)} Min.` : `${age.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Std.`;
+      label.textContent = `${item.state === 'fresh' ? 'Aktuell' : 'Warnung'} · ${formatDateTime(item.lastBackupAt)} · ${ageText} alt${item.error ? ` · ${item.error}` : ''}`;
+    }
+  }
+}
+
+function renderHistory(current) {
+  const entries = current.errors || [];
+  $('#errorCount').textContent = entries.length ? `(${entries.length})` : '';
+  const root = $('#errorHistory');
+  root.replaceChildren();
+  if (!entries.length) root.textContent = current.historyError || 'Noch keine Fehler protokolliert.';
+  for (const item of [...entries].reverse()) {
+    const entry = document.createElement('div');
+    entry.className = 'history-entry';
+    entry.textContent = `${formatDateTime(item.at)} · ${item.source}${item.name ? ` · ${item.name}` : ''}: ${item.error}`;
+    root.appendChild(entry);
+  }
 }
 
 function collectCalendars() {
@@ -151,7 +183,15 @@ async function loadFolders(folder = '/share') {
 async function updateStatus() {
   try {
     const current = await request('/api/status');
-    $('#runState').textContent = current.running ? 'Sicherung läuft …' : 'Bereit';
+    state.health = current.health;
+    const good = current.health?.calendars.filter(item => item.state === 'fresh').length || 0;
+    const total = current.health?.calendars.length || 0;
+    $('#runState').textContent = current.running ? 'Sicherung läuft …' : total && !current.health.complete ? `Prüfen · ${good}/${total} aktuell` : 'Bereit';
+    const storage = current.health?.storage;
+    $('#storageStatus').textContent = storage?.ok ? `Zielordner verfügbar · ${(storage.freeBytes / 1024 ** 3).toLocaleString('de-DE', { maximumFractionDigits: 1 })} GiB frei` : storage?.error || 'Zielordner wird geprüft …';
+    $('#storageStatus').classList.toggle('warning', storage?.ok === false);
+    renderHealth();
+    renderHistory(current);
     $('#runNow').disabled = current.running;
     document.querySelector('.stat-icon.ready')?.classList.toggle('running', current.running);
     if (current.lastRun?.finishedAt) {

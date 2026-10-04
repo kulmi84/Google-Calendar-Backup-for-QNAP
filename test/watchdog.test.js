@@ -19,7 +19,7 @@ function fixture(t, calendars = [{ id: 'a', name: 'Privat', url: 'secret-url' }]
   save();
   const messages = [];
   const check = (now = NOW) => checkWatchdog(dir, { now, report: (type, message) => messages.push({ type, message }) });
-  const backup = (name = 'Privat', age = 0, content = 'BEGIN:VCALENDAR\nEND:VCALENDAR', suffix = '.ics') => {
+  const backup = (name = 'Privat', age = 0, content = 'BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR', suffix = '.ics') => {
     const file = path.join(targetDir, `${name}_2026-10-04_03-15-00${suffix}`);
     fs.writeFileSync(file, content);
     fs.utimesSync(file, new Date(NOW - age), new Date(NOW - age));
@@ -32,6 +32,7 @@ test('fresh and exactly 26-hour-old backups are healthy', t => {
   const f = fixture(t);
   f.backup('Privat', MAX_AGE);
   assert.equal(f.check()[0].ok, true);
+  assert.equal(f.check()[0].latest, NOW - MAX_AGE);
   assert.deepEqual(f.messages, []);
 });
 

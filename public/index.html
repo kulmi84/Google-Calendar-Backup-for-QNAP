@@ -64,10 +64,16 @@
           <label>Täglich um <input id="schedule" type="time"></label>
           <label>Aufbewahrung in Tagen <input id="retentionDays" type="number" min="1" max="3650"></label>
         </div>
+        <p id="storageStatus" class="health-detail">Zielordner wird geprüft …</p>
         <div class="actions">
           <button id="save" class="primary" type="button">Einstellungen speichern</button>
         </div>
       </section>
+      <details class="card">
+        <summary>Fehlerhistorie <span id="errorCount"></span></summary>
+        <p class="health-detail">Die letzten 100 Fehler und Warnungen bleiben auch nach einem App-Neustart erhalten.</p>
+        <div id="errorHistory" class="health-detail">Noch keine Fehler protokolliert.</div>
+      </details>
     </div>
   </main>
 

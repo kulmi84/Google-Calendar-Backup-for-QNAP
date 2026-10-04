@@ -4,6 +4,11 @@ const fs = require('node:fs');
 const https = require('node:https');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { pipeline } = require('node:stream/promises');
+const crypto = require('node:crypto');
+const { validateIcsFile, checkTarget, MAX_BYTES } = require('./snapshot');
+const { recordError, safeError } = require('./history');
+const { assertSharePath } = require('./folders');
 
 function timestamp(date = new Date()) {
   const pad = value => String(value).padStart(2, '0');
@@ -31,6 +36,7 @@ function validateCalendarUrl(value) {
 
 function download(url, destination, redirects = 3) {
   return new Promise((resolve, reject) => {
+    let responseStream;
     const request = https.get(url, { timeout: 30000, headers: { 'User-Agent': 'Google-Calendar-Backup-for-QNAP/0.1' } }, response => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirects > 0) {
         response.resume();
@@ -48,18 +54,17 @@ function download(url, destination, redirects = 3) {
         return;
       }
 
-      const output = fs.createWriteStream(destination, { mode: 0o600 });
+      const output = fs.createWriteStream(destination, { mode: 0o600, flags: 'wx' });
+      responseStream = response;
       let bytes = 0;
       response.on('data', chunk => {
         bytes += chunk.length;
-        if (bytes > 50 * 1024 * 1024) request.destroy(new Error('Kalenderdatei ist größer als 50 MB'));
+        if (bytes > MAX_BYTES) response.destroy(new Error('Kalenderdatei ist größer als 50 MB'));
       });
-      response.pipe(output);
-      output.on('finish', () => output.close(() => resolve(bytes)));
-      output.on('error', reject);
+      pipeline(response, output).then(() => resolve(bytes), reject);
     });
     request.on('timeout', () => request.destroy(new Error('Zeitüberschreitung beim Kalenderabruf')));
-    request.on('error', reject);
+    request.on('error', error => responseStream ? responseStream.destroy(error) : reject(error));
   });
 }
 
@@ -78,50 +83,63 @@ function qulog(type, message) {
     stdio: 'ignore'
   });
   child.unref();
+  child.on('error', () => {});
 }
 
 function removeExpired(targetDir, prefix, retentionDays, now = Date.now()) {
   const cutoff = now - retentionDays * 86400000;
   for (const entry of fs.readdirSync(targetDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.startsWith(`${prefix}_`) || !entry.name.endsWith('.ics')) continue;
+    if (!entry.isFile() || !entry.name.startsWith(`${prefix}_`) || !/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.ics$/.test(entry.name.slice(prefix.length + 1))) continue;
     const file = path.join(targetDir, entry.name);
     if (fs.statSync(file).mtimeMs < cutoff) fs.unlinkSync(file);
   }
 }
 
-async function backupCalendar(calendar, config, runStamp = timestamp()) {
+async function backupCalendar(calendar, config, runStamp = timestamp(), options = {}) {
   const targetDir = path.resolve(config.targetDir);
-  fs.mkdirSync(targetDir, { recursive: true, mode: 0o755 });
   const prefix = safeName(calendar.name);
   const finalFile = path.join(targetDir, `${prefix}_${runStamp}.ics`);
-  const tempFile = `${finalFile}.tmp`;
+  const tempFile = `${finalFile}.${crypto.randomUUID()}.tmp`;
 
   try {
+    if (options.qnapMode) assertSharePath(targetDir, '/share', '/etc/config/smb.conf', true);
+    fs.mkdirSync(targetDir, { recursive: true, mode: 0o755 });
+    (options.checkTarget || checkTarget)(targetDir, { writeProbe: true });
     const url = validateCalendarUrl(calendar.url);
-    await download(url, tempFile);
-    const header = fs.readFileSync(tempFile, { encoding: 'utf8', flag: 'r' }).slice(0, 4096);
-    if (!header.includes('BEGIN:VCALENDAR')) throw new Error('Antwort ist keine gültige iCalendar-Datei');
+    await (options.download || download)(url, tempFile);
+    validateIcsFile(tempFile);
+    const fd = fs.openSync(tempFile, 'r');
+    try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    fs.chmodSync(tempFile, 0o644);
     fs.renameSync(tempFile, finalFile);
-    fs.chmodSync(finalFile, 0o644);
-    removeExpired(targetDir, prefix, config.retentionDays);
+    // Maintenance/logging errors must not hide an already committed snapshot.
+    const warnings = [];
+    try { removeExpired(targetDir, prefix, config.retentionDays); } catch (error) { warnings.push(`Aufbewahrung: ${safeError(error)}`); }
     const message = `Kalender ${calendar.name} erfolgreich gesichert: ${path.basename(finalFile)}`;
-    appendLog(targetDir, message);
+    try { appendLog(targetDir, message); } catch (error) { warnings.push(`Protokoll: ${safeError(error)}`); }
     qulog(0, message);
-    return { id: calendar.id, name: calendar.name, ok: true, file: finalFile };
+    for (const warning of warnings) {
+      qulog(1, `Kalender ${calendar.name}: ${warning}`);
+      try { recordError(options.dataDir, { source: 'Wartung', calendarId: calendar.id, name: calendar.name, error: warning }); } catch { qulog(2, 'Fehlerhistorie konnte nicht gespeichert werden.'); }
+    }
+    return { id: calendar.id, name: calendar.name, ok: true, file: finalFile, warnings };
   } catch (error) {
     try { fs.unlinkSync(tempFile); } catch {}
-    const message = `Fehler beim Sichern von ${calendar.name}: ${error.message}`;
-    appendLog(targetDir, message);
+    const detail = safeError(error);
+    const message = `Fehler beim Sichern von ${calendar.name}: ${detail}`;
+    try { appendLog(targetDir, message); } catch {}
     qulog(2, message);
-    return { id: calendar.id, name: calendar.name, ok: false, error: error.message };
+    try { recordError(options.dataDir, { source: 'Sicherung', calendarId: calendar.id, name: calendar.name, error: detail }); } catch { qulog(2, 'Fehlerhistorie konnte nicht gespeichert werden.'); }
+    return { id: calendar.id, name: calendar.name, ok: false, error: detail };
   }
 }
 
-async function runBackup(config) {
+async function runBackup(config, options = {}) {
+  const startedAt = new Date().toISOString();
   const runStamp = timestamp();
   const results = [];
-  for (const calendar of config.calendars) results.push(await backupCalendar(calendar, config, runStamp));
-  return { startedAt: new Date().toISOString(), results };
+  for (const calendar of config.calendars) results.push(await backupCalendar(calendar, config, runStamp, options));
+  return { startedAt, results, complete: results.every(result => result.ok) };
 }
 
-module.exports = { backupCalendar, removeExpired, runBackup, safeName, timestamp, validateCalendarUrl, qulog };
+module.exports = { backupCalendar, removeExpired, runBackup, safeName, timestamp, validateCalendarUrl, qulog, download };

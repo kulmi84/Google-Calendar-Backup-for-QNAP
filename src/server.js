@@ -4,7 +4,9 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { runBackup, validateCalendarUrl } = require('./backup');
+const { runBackup, validateCalendarUrl, safeName } = require('./backup');
+const { monitor } = require('./monitor');
+const { loadHistory } = require('./history');
 const { loadConfig, saveConfig } = require('./config');
 const { assertSharePath, listFolders } = require('./folders');
 
@@ -20,6 +22,15 @@ const APP_VERSION = require('../package.json').version;
 let config = loadConfig(DATA_DIR);
 let status = { running: false, lastRun: null };
 let lastScheduledDate = '';
+let healthCache = null;
+
+function publicStatus() {
+  if (!healthCache || Date.now() - Date.parse(healthCache.checkedAt) > 60000) healthCache = monitor(config, Date.now(), { qnapMode: QNAP_MODE });
+  let errors;
+  let historyError = '';
+  try { errors = loadHistory(DATA_DIR); } catch { errors = []; historyError = 'Fehlerhistorie kann nicht gelesen werden.'; }
+  return { ...status, health: healthCache, errors, historyError };
+}
 
 function json(res, code, value, headers = {}) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
@@ -65,8 +76,8 @@ function validateSettings(input) {
     const id = String(item.id || crypto.randomUUID());
     const name = String(item.name || '').trim();
     if (!name || name.length > 80) throw new Error('Jeder Kalender benötigt einen gültigen Namen');
-    if (names.has(name.toLowerCase())) throw new Error(`Kalendername doppelt: ${name}`);
-    names.add(name.toLowerCase());
+    if (names.has(safeName(name).toLowerCase())) throw new Error(`Kalendername doppelt oder gleicher Dateiname: ${name}`);
+    names.add(safeName(name).toLowerCase());
     const url = String(item.url || old.get(id)?.url || '').trim();
     validateCalendarUrl(url);
     return { id, name, url };
@@ -78,11 +89,12 @@ async function executeBackup() {
   if (status.running) throw new Error('Eine Sicherung läuft bereits');
   status.running = true;
   try {
-    status.lastRun = await runBackup(config);
+    status.lastRun = await runBackup(config, { dataDir: DATA_DIR, qnapMode: QNAP_MODE });
     status.lastRun.finishedAt = new Date().toISOString();
     return status.lastRun;
   } finally {
     status.running = false;
+    healthCache = null;
   }
 }
 
@@ -114,7 +126,7 @@ function serveStatic(req, res, pathname) {
 async function api(req, res, pathname, searchParams) {
   try {
     if (pathname === '/api/config' && req.method === 'GET') return json(res, 200, publicConfig());
-    if (pathname === '/api/status' && req.method === 'GET') return json(res, 200, status);
+    if (pathname === '/api/status' && req.method === 'GET') return json(res, 200, publicStatus());
     if (pathname === '/api/folders' && req.method === 'GET') {
       return json(res, 200, listFolders(searchParams.get('path')));
     }
@@ -128,7 +140,7 @@ async function api(req, res, pathname, searchParams) {
       const id = String(item.id || crypto.randomUUID());
       const name = String(item.name || '').trim();
       if (id.length > 128 || !name || name.length > 80) throw new Error('Kalender benötigt einen gültigen Namen und eine ID');
-      if (config.calendars.some(calendar => calendar.id !== id && calendar.name.toLowerCase() === name.toLowerCase())) {
+      if (config.calendars.some(calendar => calendar.id !== id && safeName(calendar.name).toLowerCase() === safeName(name).toLowerCase())) {
         throw new Error(`Kalendername doppelt: ${name}`);
       }
       const index = config.calendars.findIndex(calendar => calendar.id === id);
@@ -140,6 +152,7 @@ async function api(req, res, pathname, searchParams) {
       else calendars[index] = { id, name, url };
       config = { ...config, calendars };
       saveConfig(DATA_DIR, config);
+      healthCache = null;
       return json(res, 200, publicConfig());
     }
 
@@ -147,6 +160,7 @@ async function api(req, res, pathname, searchParams) {
       const settings = validateSettings(await readBody(req));
       config = { ...config, ...settings };
       saveConfig(DATA_DIR, config);
+      healthCache = null;
       return json(res, 200, publicConfig());
     }
 

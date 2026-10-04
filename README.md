@@ -1,8 +1,18 @@
 # Google Calendar Backup for QNAP
 
+## Neu in 1.0.2: Inhaltsprüfung, Fehlerhistorie und Backup-Alter
+
+- Downloads werden auf eine vollständige iCalendar-Hülle, `VERSION:2.0` und geschlossene Komponenten geprüft. Leere Kalender ohne Termine sind erlaubt; leere Dateien, HTML und abgebrochene ICS-Dateien nicht. Erst nach erfolgreicher Prüfung und Synchronisierung wird die temporäre Datei atomisch zur endgültigen `.ics` umbenannt.
+- Jeder konfigurierte Kalender wird einzeln überwacht. In seiner Zeile stehen Zeitpunkt und Alter der letzten gültigen Sicherung sowie der Zustand. Ein fehlerhafter Kalender stoppt die übrigen Sicherungen nicht; unvollständige Läufe bleiben erkennbar.
+- Die Oberfläche zeigt Zielordnerzustand und verfügbaren Speicherplatz. Vor jedem Download sind eine erfolgreiche Schreibprobe und mindestens **60 MiB** freier Platz nötig (50 MiB maximaler Kalenderdownload plus 10 MiB Reserve).
+- Die aufklappbare **Fehlerhistorie** zeigt die letzten 100 Sicherungs-, Wartungs- und Watchdog-Fehler. Sie bleibt nach Neustarts erhalten und liegt mit privaten Dateirechten unter `/etc/config/GoogleCalendarBackup/error-history/`, unabhängig vom Sicherungsordner. Geheime URLs werden ausgeblendet; alte Textlogs werden nicht importiert.
+- Der unabhängige Watchdog nutzt jetzt dieselbe vollständige Inhaltsprüfung und prüft zusätzlich Zielordner und freien Speicherplatz. Die neuen Funktionen sind automatisch aktiv; es gibt keinen zusätzlichen Aktivierungsschalter.
+
+Die Anzeige wird regelmäßig aktualisiert; die Dateiprüfung erfolgt höchstens einmal pro Minute und zusätzlich nach Konfigurationsänderungen und Sicherungen. Das helle UI, Icon, tägliche Uhrzeit und Netzwerkbindung bleiben erhalten. Verpasste Sicherungen werden nicht nachgeholt. Details: [Release-Hinweise 1.0.2](docs/releases/1.0.2.md).
+
 ## Neu in 1.0.1: unabhängiger Sicherungs-Watchdog
 
-Eine separate QTS-Cronaufgabe prüft stündlich zur Minute 15 für jeden konfigurierten Kalender, ob eine lesbare, nicht leere ICS-Datei aus den letzten **26 Stunden** vorhanden ist. Sie läuft unabhängig vom Node-App-Dienst und meldet fehlende/veraltete Sicherungen sowie unlesbare Zielordner als Warnung im QNAP-Systemprotokoll (QuLog). Neue Kalender ohne Sicherung erhalten 26 Stunden Anlaufzeit. Wiederholungen erfolgen höchstens einmal täglich pro Kalender; eine aktuelle Sicherung erzeugt eine Entwarnung. Mehrdeutige Dateinamen werden ebenfalls gemeldet.
+Eine separate QTS-Cronaufgabe prüft stündlich zur Minute 15 für jeden konfigurierten Kalender, ob eine gültige ICS-Datei aus den letzten **26 Stunden** vorhanden ist. Sie läuft unabhängig vom Node-App-Dienst und meldet fehlende/veraltete Sicherungen sowie unlesbare Zielordner als Warnung im QNAP-Systemprotokoll (QuLog). Neue Kalender ohne Sicherung erhalten 26 Stunden Anlaufzeit. Wiederholungen erfolgen höchstens einmal täglich pro Kalender; eine aktuelle Sicherung erzeugt eine Entwarnung. Mehrdeutige Dateinamen werden ebenfalls gemeldet.
 
 Der Watchdog öffnet keine Ports und ruft keine Kalender-URLs ab. Die einzige neue Cronzeile ist mit `GoogleCalendarBackup-Watchdog` markiert; andere Aufgaben bleiben unverändert. Die Deinstallation entfernt diese Cronzeile. Ein bloßes Stoppen/Deaktivieren der App lässt die Überwachung absichtlich weiterlaufen – längere geplante Pausen können deshalb Warnungen auslösen. Die frühere manuelle Sicherungsaufgabe wird nicht wieder eingerichtet.
 
@@ -16,7 +26,7 @@ Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. 
 
 **Suchbegriffe / Keywords:** Google Kalender Backup, Google Kalender sichern, Google Calendar Backup, Google Calendar sichern, Kalender Backup QNAP, Calendar Backup QNAP, QNAP Google Kalender, QNAP Google Calendar, ICS Backup, QTS Backup.
 
-> **Aktuelle Version: 1.0.1**, mit unabhängigem Watchdog auf Basis der bisherigen Stable-Version 1.0.0. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
+> **Aktuelle Version: 1.0.2**, mit erweiterter Inhaltsprüfung, Fehlerhistorie und Backup-Alter. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
 ![Oberfläche von Google Calendar Backup in QTS](docs/oberflaeche.png)
 
@@ -41,7 +51,7 @@ Der Screenshot zeigt die Oberfläche vom 27. September 2026 vor der Datumsformat
 
 ## Installation
 
-1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 1.0.1: [GoogleCalendarBackup_1.0.1_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v1.0.1/GoogleCalendarBackup_1.0.1_x86_64.qpkg). Die zugehörige `.qpkg.sha256`-Datei enthält die Prüfsumme.
+1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 1.0.2: [GoogleCalendarBackup_1.0.2_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v1.0.2/GoogleCalendarBackup_1.0.2_x86_64.qpkg). Die zugehörige `.qpkg.sha256`-Datei enthält die Prüfsumme.
 2. In QTS mit einem Konto mit Berechtigung zur App-Installation anmelden.
 3. **App Center → Manuell installieren** öffnen, die heruntergeladene `.qpkg`-Datei auswählen und die Installation bestätigen. Die automatisch von GitHub angebotenen Quellcode-ZIP-/TAR-Dateien sind keine QNAP-Installer.
 4. Falls QTS die Installation wegen einer fehlenden digitalen Signatur blockiert: die App-Center-Einstellung zur Installation von Anwendungen ohne gültige digitale Signatur prüfen und nur für das bewusst heruntergeladene Paket erlauben. Die genaue Bezeichnung hängt von der QTS-Version ab. Der aktuelle Build enthält keinen Signierungsschritt.
@@ -58,7 +68,7 @@ Bei einem Upgrade bleibt die Konfiguration unter `/etc/config/GoogleCalendarBack
 4. Unter **Sicherung** eine QNAP-Freigabe und einen Unterordner über **Durchsuchen…** als Ziel wählen, die tägliche Uhrzeit und Aufbewahrungsdauer einstellen und **Einstellungen speichern** anklicken.
 5. Mit **Jetzt sichern** einen Lauf auslösen. Oben erscheinen Status, Zeitpunkt und Ergebnis der letzten Sicherung.
 
-Der Papierkorb entfernt eine Kalenderzeile zunächst aus der Oberfläche. **Erst „Einstellungen speichern“ übernimmt die Löschung dauerhaft.** Diese Schaltfläche speichert die gesamte Kalenderliste und die Sicherungseinstellungen; unvollständige Kalenderzeilen können dabei zu einer Validierungsfehlermeldung führen. Kalendernamen müssen eindeutig sein.
+Der Papierkorb entfernt eine Kalenderzeile zunächst aus der Oberfläche. **Erst „Einstellungen speichern“ übernimmt die Löschung dauerhaft.** Diese Schaltfläche speichert die gesamte Kalenderliste und die Sicherungseinstellungen; unvollständige Kalenderzeilen können dabei zu einer Validierungsfehlermeldung führen. Kalendernamen müssen auch nach Umwandlung in Dateinamen eindeutig sein (beispielsweise kollidieren `Privat!` und `Privat?`).
 
 Behandle die geheime iCal-Adresse wie ein Passwort: Wer sie besitzt, kann den Kalender lesen.
 
@@ -72,7 +82,7 @@ familie_2026-09-27_04-15-00.ics
 doris_2026-09-27_04-15-00.ics
 ```
 
-Die App prüft, ob die Antwort eine iCalendar-Datei enthält, und übernimmt sie erst danach als `.ics`. Ältere passende Dateien werden gemäß der eingestellten Aufbewahrungsdauer entfernt. Im Zielordner liegt auch `backup.log`; Erfolg und Fehler werden zusätzlich an QNAP QuLog Center gemeldet. Die Dateien können später wieder in einen Kalender importiert werden.
+Die App prüft die vollständige iCalendar-Struktur und übernimmt sie erst danach als `.ics`. Das ist eine Strukturprüfung und kein vollständiger RFC- oder Wiederherstellungstest. Ältere passende Dateien werden gemäß der eingestellten Aufbewahrungsdauer entfernt. Im Zielordner liegt auch `backup.log`; Erfolg und Fehler werden zusätzlich an QNAP QuLog Center gemeldet. Die Dateien können später wieder in einen Kalender importiert werden.
 
 ## Sicherheit und Berechtigungen
 
@@ -114,7 +124,7 @@ Der gewählte Node-Build muss zur glibc-Version des QNAP passen. Die Paketvorber
 
 ## Veröffentlichungsstand
 
-**1.0.1 ergänzt die Watchdog-Idee aus dem Ideen-Chat.** Grundlage ist die bisherige Stable-Version 1.0.0. Die bisherige Sicherungslogik und Laufzeit bleiben erhalten. [Release-Hinweise für 1.0.1](docs/releases/1.0.1.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen und die noch erforderliche NAS-Prüfung. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center.
+**1.0.2 setzt die ausgewählten Ideen 1, 3, 4, 5, 6, 8 und 9 um.** Grundlage ist die vorherige Version 1.0.1. Die Laufzeit bleibt erhalten. [Release-Hinweise für 1.0.2](docs/releases/1.0.2.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen und die noch erforderliche NAS-Prüfung. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center. Für die vom Nutzer ausdrücklich beauftragten Versionen 1.0.1 und 1.0.2 erfolgt die Veröffentlichung nach erfolgreicher Build-/Paketprüfung automatisch; andere neue Versionen bleiben zunächst Entwürfe.
 
 Fehler können über [GitHub Issues](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/issues) gemeldet werden. Bitte Paketversion, NAS-Modell, QTS-Version und bereinigte Fehlermeldung angeben. Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden.
 

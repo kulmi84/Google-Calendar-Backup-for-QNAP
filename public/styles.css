@@ -57,6 +57,11 @@ form { display: grid; gap: 15px; }
 .notice { padding: 13px 15px; border-radius: 9px; margin-bottom: 16px; background: #e8f5ee; color: var(--green); border: 1px solid #b8dfca; }
 .notice.error { background: #ffebee; color: var(--red); border-color: #ffcdd2; }
 .hidden { display: none !important; }
+.health-detail { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.calendar-health { grid-column: 2 / -1; margin: 0; }
+.health-detail.warning { color: var(--red); }
+summary { cursor: pointer; font-weight: 700; }
+.history-entry { padding: 10px 0; border-top: 1px solid var(--line); }
 .empty { padding: 24px 12px; color: var(--muted); text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
 .modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(18,27,36,.38); backdrop-filter: blur(3px); }
 .modal-card { width: min(650px, 100%); max-height: min(720px, calc(100vh - 40px)); display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 20px 60px rgba(18,27,36,.22); overflow: hidden; }

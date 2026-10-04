@@ -1,5 +1,9 @@
 # Release preparation
 
+## 1.0.2 — requested 2026-10-04
+
+The user requested the ideas selected as 1, 3, 4, 5, 6, 8 and 9 for 1.0.2 under the standing commit/push/build/release authorization. The workflow publishes only this explicitly requested version after tests and QDK payload checks, alongside the previously approved 1.0.1 exception. Other future versions remain drafts. NAS compatibility of these new behaviors is not yet verified; preserve that limitation in release notes. Do not change binding, icons or overall UI styling, and do not add catch-up backups.
+
 ## 1.0.1 Watchdog — requested 2026-10-04
 
 The user requested implementing the watchdog idea as 1.0.1 under the existing commit/push/build/release instruction. The build workflow publishes this specific version only after successful application tests, QDK packaging and payload verification. Other future versions continue to use the draft procedure. Existing release assets are never replaced. The independent hourly cron/QuLog integration is not yet verified on the user's NAS; release notes must retain that limitation. No network binding, UI or icon changes are authorized.

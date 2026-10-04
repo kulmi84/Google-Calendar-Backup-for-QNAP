@@ -33,7 +33,7 @@ run_watchdog()
         /sbin/log_tool -t2 -uSystem -p127.0.0.1 -mlocalhost -a '[Google Calendar Backup] Watchdog: App-Laufzeit fehlt; Sicherungen können nicht geprüft werden.'
         return 1
     fi
-    GCB_DATA_DIR=/etc/config/GoogleCalendarBackup "$NODE_BIN" "$APP_ROOT/src/watchdog.js"
+    GCB_QNAP_MODE=1 GCB_DATA_DIR=/etc/config/GoogleCalendarBackup "$NODE_BIN" "$APP_ROOT/src/watchdog.js"
 }
 
 find_runtime()

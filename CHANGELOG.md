@@ -6,6 +6,14 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 No additional changes.
 
+## 1.0.2 — 2026-10-04
+
+- Validate complete ICS envelopes, VERSION:2.0 and balanced components before atomic promotion; reject empty, oversized, HTML and truncated responses.
+- Check target permissions, a real temporary write and at least 60 MiB available space before downloading. Continue through all calendars when one fails, including failures creating/logging in the target folder.
+- Persist the latest 100 backup, maintenance and watchdog errors privately outside the target folder; show the history after restarts.
+- Share full-content per-calendar monitoring between the independent watchdog and GUI; show backup date/age and target free space. Reject colliding sanitized filenames.
+- Keep UI style, icons, loopback-only binding, schedule and no catch-up behavior unchanged.
+
 ## 1.0.1 — 2026-10-04
 
 - Add an independent hourly QTS cron watchdog with per-calendar 26-hour ICS freshness checks, daily warning deduplication and recovery messages in QuLog.

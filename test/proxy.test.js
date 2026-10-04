@@ -73,6 +73,17 @@ test('QTS proxy API paths reach configuration and folder handlers', async () => 
     const invalid = await saveCalendar('/calendar', 'two', 'Arbeit', 'https://example.org/calendar.ics');
     assert.equal(invalid.status, 400);
     assert.equal((await (await fetch(base + '/config')).json()).calendars.length, 1);
+    const statusResponse = await fetch(base + '/GoogleCalendarBackup/status');
+    assert.equal(statusResponse.status, 200);
+    const status = await statusResponse.json();
+    assert.equal(status.health.calendars.length, 1);
+    assert.equal(status.health.calendars[0].id, 'one');
+    assert.equal(status.health.complete, false);
+    assert.deepEqual(status.errors, []);
+    assert.equal(JSON.stringify(status).includes('private-token'), false);
+    const collision = await saveCalendar('/calendar', 'three', 'Privat!', calendarUrl);
+    assert.equal(collision.status, 400);
+    assert.equal((await (await fetch(base + '/config')).json()).calendars.length, 1);
   } finally {
     child.kill();
     fs.rmSync(dataDir, { recursive: true, force: true });
