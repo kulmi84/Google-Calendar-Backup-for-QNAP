@@ -53,7 +53,7 @@ form { display: grid; gap: 15px; }
 .grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
 .folder-input { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .browse { white-space: nowrap; }
-.actions { display: flex; gap: 8px; margin-top: 20px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .notice { padding: 13px 15px; border-radius: 9px; margin-bottom: 16px; background: #e8f5ee; color: var(--green); border: 1px solid #b8dfca; }
 .notice.error { background: #ffebee; color: var(--red); border-color: #ffcdd2; }
 .hidden { display: none !important; }

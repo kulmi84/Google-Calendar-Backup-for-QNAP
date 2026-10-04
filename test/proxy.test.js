@@ -73,6 +73,16 @@ test('QTS proxy API paths reach configuration and folder handlers', async () => 
     const invalid = await saveCalendar('/calendar', 'two', 'Arbeit', 'https://example.org/calendar.ics');
     assert.equal(invalid.status, 400);
     assert.equal((await (await fetch(base + '/config')).json()).calendars.length, 1);
+    // Linux CI has no QNAP log_tool. Every QTS proxy variant must reach the
+    // handler and report unavailability rather than claim a delivered warning.
+    if (!fs.existsSync('/sbin/log_tool')) {
+      for (const route of ['/test-warning', '/api/test-warning', '/GoogleCalendarBackup/api/test-warning/', '/GoogleCalendarBackup/GoogleCalendarBackup/test-warning/']) {
+        const response = await fetch(base + route, { method: 'POST', body: '{}' });
+        assert.equal(response.status, 503, route);
+        assert.match((await response.json()).error, /nicht an QuLog/);
+      }
+      assert.equal((await fetch(base + '/api/test-warning')).status, 404);
+    }
     const statusResponse = await fetch(base + '/GoogleCalendarBackup/status');
     assert.equal(statusResponse.status, 200);
     const status = await statusResponse.json();

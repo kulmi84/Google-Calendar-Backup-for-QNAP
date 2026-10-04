@@ -1,5 +1,9 @@
 # Release preparation
 
+## 1.0.3 — requested 2026-10-04
+
+The user explicitly requested idea 3, test warning/test notification, as version 1.0.3 (superseding the earlier tentative 1.0.4 idea). Under the standing commit/push/build/release authorization, publish this version after successful tests and QDK payload verification. Add the notification module to required payload checks. The real QTS QuLog/email/push path remains for the user to verify after installation; do not claim confirmed delivery. Keep security/network access and existing application behavior unchanged.
+
 ## 1.0.2 — requested 2026-10-04
 
 The user requested the ideas selected as 1, 3, 4, 5, 6, 8 and 9 for 1.0.2 under the standing commit/push/build/release authorization. The workflow publishes only this explicitly requested version after tests and QDK payload checks, alongside the previously approved 1.0.1 exception. Other future versions remain drafts. NAS compatibility of these new behaviors is not yet verified; preserve that limitation in release notes. Do not change binding, icons or overall UI styling, and do not add catch-up backups.

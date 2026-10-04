@@ -6,6 +6,12 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 No additional changes.
 
+## 1.0.3 — 2026-10-04
+
+- Add a manual test-warning button using the existing QTS proxy, QuLog warning severity and watchdog message prefix.
+- Await the QNAP log tool's exit status and report failures without claiming email/push delivery. Retain clearly marked test warnings in private error history without changing backup/watchdog state.
+- Preserve all backup behavior, loopback-only binding, icons and light UI; allow action buttons to wrap on small screens.
+
 ## 1.0.2 — 2026-10-04
 
 - Validate complete ICS envelopes, VERSION:2.0 and balanced components before atomic promotion; reject empty, oversized, HTML and truncated responses.

@@ -1,5 +1,11 @@
 # Google Calendar Backup for QNAP
 
+## Neu in 1.0.3: Testwarnung/Testbenachrichtigung
+
+Unter **Sicherung** gibt es neben **Einstellungen speichern** den Button **Testwarnung senden**. Er übergibt eine eindeutig gekennzeichnete `Watchdog: TESTWARNUNG` mit Schweregrad **Warnung** an QuLog und hält sie als **Testwarnung** in der Fehlerhistorie fest. Kalender, Sicherungen, Einstellungen und Watchdog-Zustand bleiben unverändert.
+
+So prüfst du deine Benachrichtigungsregel ohne einen echten Sicherungsfehler: Button anklicken, in QuLog nach `TESTWARNUNG` suchen und anschließend prüfen, ob E-Mail/Push über deine vorhandene QNAP-Regel angekommen sind. Die Regel muss die Warnungen von Google Calendar Backup berücksichtigen. Die App bestätigt nur die erfolgreiche Übergabe an das QNAP-Protokollwerkzeug, **keine garantierte Zustellung**. Fehlt QuLog oder schlägt die Übergabe fehl, erscheint eine Fehlermeldung. Eine fehlgeschlagene Speicherung der lokalen Historie wird separat angezeigt. Details: [Release-Hinweise 1.0.3](docs/releases/1.0.3.md).
+
 ## Neu in 1.0.2: Inhaltsprüfung, Fehlerhistorie und Backup-Alter
 
 - Downloads werden auf eine vollständige iCalendar-Hülle, `VERSION:2.0` und geschlossene Komponenten geprüft. Leere Kalender ohne Termine sind erlaubt; leere Dateien, HTML und abgebrochene ICS-Dateien nicht. Erst nach erfolgreicher Prüfung und Synchronisierung wird die temporäre Datei atomisch zur endgültigen `.ics` umbenannt.
@@ -26,7 +32,7 @@ Die App läuft als QPKG auf **QTS / x86_64**, insbesondere auf dem **TS-673A**. 
 
 **Suchbegriffe / Keywords:** Google Kalender Backup, Google Kalender sichern, Google Calendar Backup, Google Calendar sichern, Kalender Backup QNAP, Calendar Backup QNAP, QNAP Google Kalender, QNAP Google Calendar, ICS Backup, QTS Backup.
 
-> **Aktuelle Version: 1.0.2**, mit erweiterter Inhaltsprüfung, Fehlerhistorie und Backup-Alter. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
+> **Aktuelle Version: 1.0.3**, mit Testwarnung sowie Inhaltsprüfung, Fehlerhistorie und Backup-Alter. Installation und Bedienung erfolgen über QTS. Die Weboberfläche wird ausschließlich über den angemeldeten QTS-Zugang und dessen internen Proxy bereitgestellt; der Node-Dienst lauscht nur auf `127.0.0.1:19884`.
 
 ![Oberfläche von Google Calendar Backup in QTS](docs/oberflaeche.png)
 
@@ -51,7 +57,7 @@ Der Screenshot zeigt die Oberfläche vom 27. September 2026 vor der Datumsformat
 
 ## Installation
 
-1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 1.0.2: [GoogleCalendarBackup_1.0.2_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v1.0.2/GoogleCalendarBackup_1.0.2_x86_64.qpkg). Die zugehörige `.qpkg.sha256`-Datei enthält die Prüfsumme.
+1. Das aktuelle [x86_64-QPKG aus den GitHub Releases](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases) herunterladen. Für Version 1.0.3: [GoogleCalendarBackup_1.0.3_x86_64.qpkg](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/download/v1.0.3/GoogleCalendarBackup_1.0.3_x86_64.qpkg). Die zugehörige `.qpkg.sha256`-Datei enthält die Prüfsumme.
 2. In QTS mit einem Konto mit Berechtigung zur App-Installation anmelden.
 3. **App Center → Manuell installieren** öffnen, die heruntergeladene `.qpkg`-Datei auswählen und die Installation bestätigen. Die automatisch von GitHub angebotenen Quellcode-ZIP-/TAR-Dateien sind keine QNAP-Installer.
 4. Falls QTS die Installation wegen einer fehlenden digitalen Signatur blockiert: die App-Center-Einstellung zur Installation von Anwendungen ohne gültige digitale Signatur prüfen und nur für das bewusst heruntergeladene Paket erlauben. Die genaue Bezeichnung hängt von der QTS-Version ab. Der aktuelle Build enthält keinen Signierungsschritt.
@@ -124,7 +130,7 @@ Der gewählte Node-Build muss zur glibc-Version des QNAP passen. Die Paketvorber
 
 ## Veröffentlichungsstand
 
-**1.0.2 setzt die ausgewählten Ideen 1, 3, 4, 5, 6, 8 und 9 um.** Grundlage ist die vorherige Version 1.0.1. Die Laufzeit bleibt erhalten. [Release-Hinweise für 1.0.2](docs/releases/1.0.2.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen und die noch erforderliche NAS-Prüfung. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center. Für die vom Nutzer ausdrücklich beauftragten Versionen 1.0.1 und 1.0.2 erfolgt die Veröffentlichung nach erfolgreicher Build-/Paketprüfung automatisch; andere neue Versionen bleiben zunächst Entwürfe.
+**1.0.3 ergänzt den gewünschten Testwarnungs-Button auf Basis von 1.0.2.** Die Laufzeit bleibt erhalten. [Release-Hinweise für 1.0.3](docs/releases/1.0.3.md) und [Changelog](CHANGELOG.md) beschreiben die Änderungen und die noch erforderliche NAS-Prüfung. Die [Release-Vorbereitung](docs/RELEASING.md) beschreibt Paketprüfung und Freigabe. GitHub ist der Veröffentlichungsweg; die Installation erfolgt manuell über das QNAP App Center. Für die vom Nutzer ausdrücklich beauftragten Versionen 1.0.1, 1.0.2 und 1.0.3 erfolgt die Veröffentlichung nach erfolgreicher Build-/Paketprüfung automatisch; andere neue Versionen bleiben zunächst Entwürfe.
 
 Fehler können über [GitHub Issues](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/issues) gemeldet werden. Bitte Paketversion, NAS-Modell, QTS-Version und bereinigte Fehlermeldung angeben. Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden.
 

@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { runBackup, validateCalendarUrl, safeName } = require('./backup');
 const { monitor } = require('./monitor');
 const { loadHistory } = require('./history');
+const { sendTestWarning } = require('./notifications');
 const { loadConfig, saveConfig } = require('./config');
 const { assertSharePath, listFolders } = require('./folders');
 
@@ -164,6 +165,11 @@ async function api(req, res, pathname, searchParams) {
       return json(res, 200, publicConfig());
     }
 
+    if (pathname === '/api/test-warning' && req.method === 'POST') {
+      try { return json(res, 200, await sendTestWarning(DATA_DIR)); }
+      catch (error) { return json(res, 503, { error: error.message }); }
+    }
+
     if (pathname === '/api/run' && req.method === 'POST') {
       json(res, 202, { accepted: true });
       executeBackup().catch(error => console.error(error));
@@ -189,7 +195,7 @@ const server = http.createServer((req, res) => {
   // Einige QTS-Proxy-Versionen haengen bei API-Aufrufen einen Slash an.
   if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
   // Der QTS-Proxy auf dem TS-673A entfernt auch das Segment /api.
-  if (['/config', '/status', '/folders', '/calendar', '/run'].includes(pathname)) {
+  if (['/config', '/status', '/folders', '/calendar', '/run', '/test-warning'].includes(pathname)) {
     pathname = `/api${pathname}`;
   }
   if (pathname === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: APP_VERSION });

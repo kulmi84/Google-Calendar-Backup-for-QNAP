@@ -259,6 +259,20 @@ $('#runNow').addEventListener('click', async () => {
   }
 });
 
+$('#testWarning').addEventListener('click', async () => {
+  const button = $('#testWarning');
+  button.disabled = true;
+  try {
+    const result = await request('/api/test-warning', { method: 'POST', body: '{}' });
+    showNotice(result.message, result.historySaved === false);
+    await updateStatus();
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 $('#browseTarget').addEventListener('click', () => {
   const current = $('#targetDir').value.trim();
   $('#folderDialog').classList.remove('hidden');

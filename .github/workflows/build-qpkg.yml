@@ -94,6 +94,7 @@ jobs:
               assert pathlib.Path(sys.argv[1]).name == f'GoogleCalendarBackup_{expected}_x86_64.qpkg'
           required = ['GoogleCalendarBackup.sh', 'bin/node', 'app/src/folders.js', 'app/src/watchdog.js',
                       'app/src/snapshot.js', 'app/src/monitor.js', 'app/src/history.js',
+                      'app/src/notifications.js',
                       'app/public/index.html', '.qpkg_icon.gif', 'app/LICENSE',
                       'app/NODEJS-LICENSE', 'app/THIRD_PARTY_NOTICES.md']
           for name in required:
@@ -131,9 +132,9 @@ jobs:
           notes="docs/releases/${version}.md"
           test -s "$notes"
           release_flags=(--draft)
-          # The user requested implementation and release of 1.0.1 and 1.0.2.
+          # The user requested implementation and release of 1.0.1, 1.0.2 and 1.0.3.
           # Publish only these approved versions after all build/payload checks pass.
-          if [[ "$version" == 1.0.1 || "$version" == 1.0.2 ]]; then
+          if [[ "$version" == 1.0.1 || "$version" == 1.0.2 || "$version" == 1.0.3 ]]; then
             release_flags=()
           fi
           if [[ "$version" == 0.* || "$version" == *-* ]]; then
