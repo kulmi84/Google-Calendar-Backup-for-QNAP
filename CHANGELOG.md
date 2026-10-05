@@ -4,7 +4,10 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 ## Unreleased
 
-No additional changes.
+- Dokumentation um die aktuelle Oberfläche für Sicherung, Testwarnung und Fehlerhistorie ergänzt.
+- README für eine bessere Auffindbarkeit über deutsche und englische Suchbegriffe wie „Google Kalender Backup“ und „Google Calendar Backup“ optimiert.
+- Dokumentation der Testwarnung ergänzt: gekennzeichneter Benachrichtigungstest zur Prüfung der über QNAP konfigurierten QuLog-/E-Mail-/Push-Zustellung.
+- Persistente Fehlerhistorie dokumentiert: Die letzten 100 Fehler und Warnungen bleiben auch nach einem App-Neustart erhalten.
 
 ## 1.0.3 — 2026-10-04
 
