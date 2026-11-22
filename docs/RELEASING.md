@@ -1,5 +1,9 @@
 # Release preparation
 
+## 1.0.4 — requested 2026-11-22
+
+The user requested a backup history (Sicherungsverlauf) shown as a sidebar to the right of the settings, limited to the last 14 days with its own scrollbar, and approved it as version 1.0.4 to commit and push. Following the 1.0.1–1.0.3 practice, publish after successful tests and QDK payload verification; `app/src/runs.js` is added to the required payload. Display on the NAS remains for the user to verify after installation. Backup behavior, binding, icons and styling are otherwise unchanged.
+
 ## 1.0.3 — requested 2026-10-04
 
 The user explicitly requested idea 3, test warning/test notification, as version 1.0.3 (superseding the earlier tentative 1.0.4 idea). Under the standing commit/push/build/release authorization, publish this version after successful tests and QDK payload verification. Add the notification module to required payload checks. The real QTS QuLog/email/push path remains for the user to verify after installation; do not claim confirmed delivery. Keep security/network access and existing application behavior unchanged.

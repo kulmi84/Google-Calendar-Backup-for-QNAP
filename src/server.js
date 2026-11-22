@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { runBackup, validateCalendarUrl, safeName } = require('./backup');
 const { monitor } = require('./monitor');
 const { loadHistory } = require('./history');
+const { loadRuns, recordRun, recentRuns } = require('./runs');
 const { sendTestWarning } = require('./notifications');
 const { loadConfig, saveConfig } = require('./config');
 const { assertSharePath, listFolders } = require('./folders');
@@ -21,7 +22,10 @@ const PROXY_PATH = String(process.env.GCB_PROXY_PATH || '/GoogleCalendarBackup')
 const APP_VERSION = require('../package.json').version;
 
 let config = loadConfig(DATA_DIR);
-let status = { running: false, lastRun: null };
+let runs = [];
+try { runs = loadRuns(DATA_DIR); } catch (error) { console.error(`Sicherungsverlauf kann nicht gelesen werden: ${error.message}`); }
+// Die letzte Sicherung bleibt so auch nach einem Neustart oder Update sichtbar.
+let status = { running: false, lastRun: runs.length ? runs[runs.length - 1] : null };
 let lastScheduledDate = '';
 let healthCache = null;
 
@@ -30,7 +34,7 @@ function publicStatus() {
   let errors;
   let historyError = '';
   try { errors = loadHistory(DATA_DIR); } catch { errors = []; historyError = 'Fehlerhistorie kann nicht gelesen werden.'; }
-  return { ...status, health: healthCache, errors, historyError };
+  return { ...status, health: healthCache, errors, historyError, runs: recentRuns(runs) };
 }
 
 function json(res, code, value, headers = {}) {
@@ -86,12 +90,19 @@ function validateSettings(input) {
   return { targetDir, schedule, retentionDays, calendars };
 }
 
-async function executeBackup() {
+async function executeBackup(trigger = 'manual') {
   if (status.running) throw new Error('Eine Sicherung läuft bereits');
   status.running = true;
   try {
     status.lastRun = await runBackup(config, { dataDir: DATA_DIR, qnapMode: QNAP_MODE });
     status.lastRun.finishedAt = new Date().toISOString();
+    status.lastRun.trigger = trigger;
+    try {
+      recordRun(DATA_DIR, status.lastRun, trigger);
+      runs = loadRuns(DATA_DIR);
+    } catch (error) {
+      console.error(`Sicherungsverlauf konnte nicht gespeichert werden: ${error.message}`);
+    }
     return status.lastRun;
   } finally {
     status.running = false;
@@ -213,7 +224,7 @@ function scheduleTick() {
   const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   if (time === config.schedule && day !== lastScheduledDate) {
     lastScheduledDate = day;
-    executeBackup().catch(error => console.error(error));
+    executeBackup('schedule').catch(error => console.error(error));
   }
 }
 

@@ -4,6 +4,13 @@ Changes are listed by application version. GitHub releases through 0.1.15 are ma
 
 ## Unreleased
 
+No additional changes.
+
+## 1.0.4 — 2026-11-22
+
+- Sicherungsverlauf als Seitenleiste in der Oberfläche: Zeitpunkt, Auslöser, Dauer und Ergebnis je Kalender für die letzten 14 Tage in einer scrollbaren Liste; Details aufklappbar.
+- Die letzten 200 Läufe werden privat in `run-history.json` außerhalb des Sicherungsordners gespeichert (ohne Kalenderadressen und vollständige Pfade). „Letzte Sicherung“ bleibt dadurch auch nach einem Neustart oder Update sichtbar.
+
 - Dokumentation um die aktuelle Oberfläche für Sicherung, Testwarnung und Fehlerhistorie ergänzt.
 - README für eine bessere Auffindbarkeit über deutsche und englische Suchbegriffe wie „Google Kalender Backup“ und „Google Calendar Backup“ optimiert.
 - Dokumentation der Testwarnung ergänzt: gekennzeichneter Benachrichtigungstest zur Prüfung der über QNAP konfigurierten QuLog-/E-Mail-/Push-Zustellung.

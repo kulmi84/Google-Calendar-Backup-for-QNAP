@@ -99,6 +99,72 @@ function renderHistory(current) {
   }
 }
 
+function formatDuration(startedAt, finishedAt) {
+  const seconds = Math.max(0, Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000));
+  if (!Number.isFinite(seconds)) return '';
+  return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+}
+
+function renderRuns(current) {
+  const runs = current.runs || [];
+  const signature = runs.map(run => run.startedAt).join('|');
+  if (signature === renderRuns.signature) return; // Geöffnete Einträge beim Abfragen nicht zuklappen.
+  renderRuns.signature = signature;
+  const open = new Set([...document.querySelectorAll('.run[open]')].map(item => item.dataset.key));
+  const root = $('#runHistory');
+  root.replaceChildren();
+  $('#runCount').textContent = `Letzte 14 Tage · ${runs.length} ${runs.length === 1 ? 'Lauf' : 'Läufe'}`;
+  if (!runs.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Keine Sicherung in den letzten 14 Tagen protokolliert.';
+    root.appendChild(empty);
+    return;
+  }
+  for (const run of runs) {
+    const results = run.results || [];
+    const ok = results.filter(result => result.ok).length;
+    const kind = results.length && ok === results.length ? 'ok' : ok ? 'partial' : 'failed';
+    const item = document.createElement('details');
+    item.className = `run ${kind}`;
+    item.dataset.key = run.startedAt;
+    item.open = open.has(run.startedAt);
+    const summary = document.createElement('summary');
+    const dot = document.createElement('span');
+    dot.className = 'run-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.className = 'run-text';
+    const when = document.createElement('strong');
+    when.textContent = formatDateTime(run.finishedAt || run.startedAt);
+    const meta = document.createElement('span');
+    const duration = run.finishedAt ? formatDuration(run.startedAt, run.finishedAt) : '';
+    meta.textContent = [run.trigger === 'schedule' ? 'Zeitplan' : 'Manuell', `${ok}/${results.length} erfolgreich`, duration].filter(Boolean).join(' · ');
+    text.append(when, meta);
+    summary.append(dot, text);
+    item.appendChild(summary);
+    const list = document.createElement('ul');
+    for (const result of results) {
+      const line = document.createElement('li');
+      line.className = result.ok ? 'ok' : 'failed';
+      const name = document.createElement('strong');
+      name.textContent = `${result.ok ? '✓' : '✗'} ${result.name}`;
+      const detail = document.createElement('span');
+      detail.textContent = result.ok ? (result.file || 'gesichert') : (result.error || 'Fehler');
+      line.append(name, detail);
+      for (const warning of result.warnings || []) {
+        const note = document.createElement('span');
+        note.className = 'run-warning';
+        note.textContent = `Warnung: ${warning}`;
+        line.appendChild(note);
+      }
+      list.appendChild(line);
+    }
+    item.appendChild(list);
+    root.appendChild(item);
+  }
+}
+
 function collectCalendars() {
   return [...document.querySelectorAll('.calendar')].map(row => ({
     id: row.dataset.id,
@@ -192,6 +258,7 @@ async function updateStatus() {
     $('#storageStatus').classList.toggle('warning', storage?.ok === false);
     renderHealth();
     renderHistory(current);
+    renderRuns(current);
     $('#runNow').disabled = current.running;
     document.querySelector('.stat-icon.ready')?.classList.toggle('running', current.running);
     if (current.lastRun?.finishedAt) {

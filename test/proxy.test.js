@@ -90,6 +90,7 @@ test('QTS proxy API paths reach configuration and folder handlers', async () => 
     assert.equal(status.health.calendars[0].id, 'one');
     assert.equal(status.health.complete, false);
     assert.deepEqual(status.errors, []);
+    assert.deepEqual(status.runs, []);
     assert.equal(JSON.stringify(status).includes('private-token'), false);
     const collision = await saveCalendar('/calendar', 'three', 'Privat!', calendarUrl);
     assert.equal(collision.status, 400);

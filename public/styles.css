@@ -90,3 +90,38 @@ summary { cursor: pointer; font-weight: 700; }
   .folder-input { grid-template-columns: 1fr; }
   .modal { padding: 8px; }
 }
+.layout { display: grid; gap: 18px; align-items: start; }
+.main-column { min-width: 0; }
+.history-panel { margin: 0; }
+.history-panel h2 { margin-bottom: 2px; }
+.history-panel > .health-detail { margin: 0 0 12px; }
+.run-list { display: grid; gap: 2px; }
+.run { border-top: 1px solid var(--line); }
+.run:first-child { border-top: 0; }
+.run summary { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: center; padding: 10px 4px; font-weight: 400; list-style: none; border-radius: 8px; }
+.run summary::-webkit-details-marker { display: none; }
+.run summary:hover { background: #f6f8fa; }
+.run-text { display: grid; gap: 2px; min-width: 0; }
+.run-text strong { font-size: 14px; }
+.run-text span { color: var(--muted); font-size: 12px; }
+.run-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+.run.partial .run-dot { background: #e0a100; }
+.run.failed .run-dot { background: var(--red); }
+.run ul { list-style: none; margin: 0 0 10px 26px; padding: 0; display: grid; gap: 8px; }
+.run li { display: grid; gap: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.run li strong { color: var(--text); font-size: 13px; }
+.run li.failed strong, .run li.failed span { color: var(--red); }
+.run-warning { color: #9a6a00; }
+/* Verlauf rechts daneben – auch im QTS-Desktop-Fenster (1050 px breit). */
+@media (min-width: 960px) {
+  .shell { width: min(1380px, calc(100% - 32px)); }
+  .layout { grid-template-columns: minmax(0, 1fr) clamp(260px, 26vw, 360px); }
+  .history-panel { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+}
+/* Verlaufsliste scrollt für sich; Überschrift bleibt stehen. */
+.history-panel { display: flex; flex-direction: column; }
+.run-list { max-height: 420px; overflow-y: auto; padding-right: 6px; scrollbar-gutter: stable; }
+@media (min-width: 960px) {
+  .history-panel { overflow: hidden; }
+  .run-list { max-height: none; flex: 1 1 auto; min-height: 0; }
+}

@@ -37,7 +37,8 @@
       </form>
     </section>
 
-    <div id="app">
+    <div id="app" class="layout">
+     <div class="main-column">
       <section class="status-row">
         <div class="card status"><span>Status</span><strong id="runState">Bereit</strong></div>
         <div class="card status"><span>Letzte Sicherung</span><strong id="lastRun">Noch keine</strong></div>
@@ -76,6 +77,12 @@
         <p class="health-detail">Die letzten 100 Fehler und Warnungen bleiben auch nach einem App-Neustart erhalten.</p>
         <div id="errorHistory" class="health-detail">Noch keine Fehler protokolliert.</div>
       </details>
+     </div>
+      <aside class="card history-panel" aria-labelledby="runHistoryTitle">
+        <h2 id="runHistoryTitle">Sicherungsverlauf</h2>
+        <p id="runCount" class="health-detail"></p>
+        <div id="runHistory" class="run-list"><div class="empty">Verlauf wird geladen …</div></div>
+      </aside>
     </div>
   </main>
 
