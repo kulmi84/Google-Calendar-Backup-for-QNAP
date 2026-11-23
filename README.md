@@ -1,5 +1,30 @@
 # Google Calendar Backup for QNAP
 
+**Google Kalender automatisch auf deinem QNAP NAS sichern – kostenlos, lokal und ohne Google Workspace.**
+
+**Deutsch:** Sichere mehrere private Google-Kalender regelmäßig als ICS-Dateien auf deinem QNAP. Mit Sicherungsverlauf, unabhängiger Backup-Überwachung und Benachrichtigungstest.
+
+**English:** Automatically back up multiple personal Google Calendars as ICS files on a QNAP NAS. Includes backup history, independent health monitoring, and a test warning feature.
+
+**Aktuelle Version / Latest version:** **1.0.4** · QTS 5.1+ · x86_64
+
+[**QPKG herunterladen / Download**](https://github.com/kulmi84/Google-Calendar-Backup-for-QNAP/releases/latest) · [**Installationsanleitung / Installation**](#installation) · [**Changelog**](CHANGELOG.md)
+
+![Google Calendar Backup – QTS-Oberfläche (älterer Screenshot)](docs/oberflaeche.png)
+
+*Hinweis: Der Screenshot stammt vom 27. September 2026 und zeigt noch nicht den neuen Sicherungsverlauf aus 1.0.4. Private Kalenderadressen sind ausgeblendet.*
+
+## Highlights
+
+- **Automatische ICS-Sicherung:** täglicher Zeitplan, manuelle Sicherung und Aufbewahrungsdauer
+- **Mehrere Kalender:** jeder Kalender wird einzeln gesichert und überwacht
+- **Sicherungsverlauf (1.0.4):** letzte 14 Tage, Status und Details pro Kalender
+- **Watchdog:** unabhängige Prüfung auf fehlende oder veraltete Sicherungen
+- **Sicherheitsprüfungen:** ICS-Inhaltsprüfung und atomisches Speichern
+- **QTS-Integration:** Bedienung im App Center, Warnungen über QuLog und Notification Center
+
+## Versionshinweise
+
 ## Neu in 1.0.4: Sicherungsverlauf
 
 Rechts neben den Einstellungen zeigt die Seitenleiste **Sicherungsverlauf** alle Läufe der letzten **14 Tage** in einer eigenen scrollbaren Liste: Zeitpunkt, Auslöser (Zeitplan/Manuell), Dauer und wie viele Kalender erfolgreich gesichert wurden. Ein grüner, gelber oder roter Punkt zeigt vollständige, teilweise oder fehlgeschlagene Läufe. Ein Klick auf einen Lauf zeigt je Kalender den Dateinamen oder die Fehlermeldung. Der Verlauf bleibt nach Neustart und Update erhalten und beginnt mit dem ersten Lauf nach der Installation von 1.0.4. Details: [Release-Hinweise 1.0.4](docs/releases/1.0.4.md).
